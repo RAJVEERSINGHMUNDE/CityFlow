@@ -33,13 +33,11 @@ function fmtNum(n, decimals = 1) {
 function LevelBadge({ level }) {
   const styles = {
     Green: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
-    Amber: 'bg-amber-500/20  text-amber-300  border-amber-500/40',
     Red:   'bg-red-500/20    text-red-300    border-red-500/40',
   }
-  const icons = { Green: '🟢', Amber: '🟡', Red: '🔴' }
   return (
-    <span className={`text-xs px-2 py-0.5 rounded border font-bold uppercase tracking-wide ${styles[level] ?? styles.Amber}`}>
-      {icons[level]} {level}
+    <span className={`text-xs px-2 py-0.5 rounded border font-medium ${styles[level] ?? 'bg-slate-500/20 text-slate-300 border-slate-500/40'}`}>
+      {level}
     </span>
   )
 }
@@ -47,14 +45,14 @@ function LevelBadge({ level }) {
 function SeverityBar({ score }) {
   // score 0–10 → coloured fill
   const pct   = Math.min(100, (score / 10) * 100)
-  const color = score >= 7 ? '#ef4444' : score >= 4 ? '#f59e0b' : '#22c55e'
+  const color = score >= 7 ? '#ef4444' : score >= 4 ? '#94a3b8' : '#22c55e'
   return (
     <div className="mt-2">
       <div className="flex justify-between text-xs text-slate-400 mb-1">
         <span>Severity Score</span>
-        <span className="font-bold text-slate-200">{fmtNum(score, 1)} / 10</span>
+        <span className="font-mono text-slate-200">{fmtNum(score, 1)} / 10</span>
       </div>
-      <div className="h-3 rounded-full bg-slate-700 overflow-hidden">
+      <div className="h-2 rounded-full bg-slate-800 overflow-hidden">
         <div
           className="h-full rounded-full transition-all duration-700"
           style={{ width: `${pct}%`, background: color }}
@@ -64,15 +62,15 @@ function SeverityBar({ score }) {
   )
 }
 
-function MetricCard({ label, value, unit, color = 'text-slate-200', sub }) {
+function MetricCard({ label, value, unit, sub }) {
   return (
-    <div className="bg-slate-800/50 rounded-lg p-3 border border-slate-700/50">
-      <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-1">{label}</div>
-      <div className={`text-2xl font-bold ${color}`}>
+    <div className="flex flex-col">
+      <div className="text-xs text-slate-400 mb-0.5">{label}</div>
+      <div className="text-xl font-mono text-slate-100">
         {value}
-        {unit && <span className="text-xs font-normal text-slate-400 ml-1">{unit}</span>}
+        {unit && <span className="text-sm font-sans text-slate-500 ml-1">{unit}</span>}
       </div>
-      {sub && <div className="text-[10px] text-slate-500 mt-0.5">{sub}</div>}
+      {sub && <div className="text-xs text-slate-500 mt-0.5">{sub}</div>}
     </div>
   )
 }
@@ -256,23 +254,20 @@ export default function App() {
     <div className="h-screen w-full flex flex-col p-3 gap-3 font-sans bg-slate-950">
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <header className="glass-panel px-5 py-3 flex justify-between items-center shrink-0">
+      <header className="bg-slate-900 border-b border-slate-800 px-5 py-3 flex justify-between items-center shrink-0">
         <div>
-          <h1 className="text-xl font-bold bg-gradient-to-r from-blue-400 via-cyan-300 to-teal-300 bg-clip-text text-transparent">
-            CityFlow Digital Twin
+          <h1 className="text-xl font-bold text-slate-100">
+            CityFlow
           </h1>
-          <p className="text-xs text-slate-400">PS2 — Event-Driven Congestion Simulator · Bengaluru</p>
+          <p className="text-sm text-slate-400">Event-Driven Congestion Simulator</p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="px-3 py-1 bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 rounded-full text-xs font-semibold">
-            ● Live
-          </span>
-          <span className="px-3 py-1 bg-slate-700/50 text-slate-400 border border-slate-600/30 rounded-full text-xs">
+          <span className="px-3 py-1 bg-slate-800 text-slate-300 border border-slate-700 rounded text-xs">
             {events.length} Events Loaded
           </span>
           {hotspots && (
-            <span className="px-3 py-1 bg-purple-500/15 text-purple-300 border border-purple-500/30 rounded-full text-xs font-semibold">
-              🔥 Hotspot AI Ready
+            <span className="px-3 py-1 bg-slate-800 text-slate-300 border border-slate-700 rounded text-xs font-medium">
+              Hotspot Model Active
             </span>
           )}
         </div>
@@ -282,12 +277,12 @@ export default function App() {
       <div className="flex flex-1 overflow-hidden gap-3">
 
         {/* ── LEFT: Event Feed ─────────────────────────────────────────────── */}
-        <div className="w-64 shrink-0 glass-panel flex flex-col overflow-hidden">
-          <div className="px-4 py-3 border-b border-slate-700/50">
+        <div className="w-64 shrink-0 bg-slate-900 border-r border-slate-800 flex flex-col overflow-hidden">
+          <div className="px-4 py-3 border-b border-slate-800">
             <div className="flex items-center justify-between gap-2">
               <div>
                 <h2 className="font-semibold text-slate-200 text-sm">Event Scenarios</h2>
-                <p className="text-[10px] text-slate-500 mt-0.5">Historical and operator-created</p>
+                <p className="text-xs text-slate-500 mt-0.5">Historical & operators</p>
               </div>
               <button onClick={() => setShowScenario(value => !value)}
                 className="px-2 py-1 rounded bg-blue-500/20 text-blue-300 border border-blue-500/40 text-[10px]">
@@ -361,30 +356,26 @@ export default function App() {
                 }`}
               >
                 <div className="flex justify-between items-start gap-1 mb-1">
-                  <span className="text-xs font-medium text-blue-100 leading-tight">{ev.cause}</span>
+                  <span className="text-sm font-medium text-slate-200 leading-tight">{ev.cause}</span>
                   <div className="flex gap-1 shrink-0">
                     {ev.requires_closure && (
-                      <span className="text-[9px] px-1.5 py-0.5 bg-red-500/20 text-red-400 border border-red-500/30 rounded">
+                      <span className="text-[10px] px-1.5 py-0.5 bg-red-500/20 text-red-400 border border-red-500/30 rounded">
                         CLOSURE
                       </span>
                     )}
                   </div>
                 </div>
-                <div className="text-[10px] text-slate-400">🕐 {fmtDateTime(ev.time)}</div>
+                <div className="text-xs font-mono text-slate-400">{fmtDateTime(ev.time)}</div>
                 <div className="flex justify-between mt-1">
-                  <span className={`text-[9px] px-1.5 py-0.5 rounded border ${
-                    ev.event_type === 'planned'
-                      ? 'bg-purple-500/20 text-purple-300 border-purple-500/30'
-                      : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
-                  }`}>
-                    {ev.event_type?.toUpperCase()}
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded border bg-slate-800 text-slate-300 border-slate-700`}>
+                    {ev.event_type}
                   </span>
-                  <span className="text-[9px] text-slate-600 font-mono">
+                  <span className="text-[10px] text-slate-500 font-mono">
                     {ev.latitude?.toFixed(3)}, {ev.longitude?.toFixed(3)}
                   </span>
                 </div>
                 {ev.source === 'operator_scenario' && (
-                  <div className="text-[9px] text-cyan-400 mt-1">OPERATOR SCENARIO</div>
+                  <div className="text-xs text-slate-400 mt-1">Operator Scenario</div>
                 )}
               </div>
             ))}
@@ -392,14 +383,14 @@ export default function App() {
         </div>
 
         {/* ── CENTER: Map Viewer with Tabs ──────────────────────────────────── */}
-        <div className="flex-1 glass-panel flex flex-col overflow-hidden">
+        <div className="flex-1 bg-slate-950 flex flex-col overflow-hidden border border-slate-800 rounded">
           {/* Tab bar */}
-          <div className="flex items-center px-3 pt-2 gap-1 border-b border-slate-700/50 shrink-0">
+          <div className="flex items-center px-3 pt-2 gap-1 border-b border-slate-800 shrink-0 bg-slate-900">
             <TabBtn id="tab-simulation" active={activeTab === 'simulation'} onClick={() => setActiveTab('simulation')}>
-              🗺 Simulation Map
+              Simulation Map
             </TabBtn>
             <TabBtn id="tab-hotspot" active={activeTab === 'hotspot'} onClick={() => setActiveTab('hotspot')}>
-              🔥 Hotspot Map
+              Hotspot Map
             </TabBtn>
           </div>
 
@@ -410,9 +401,8 @@ export default function App() {
             <div className={`absolute inset-0 ${activeTab === 'simulation' ? 'flex flex-col' : 'hidden'}`}>
               {simLoading ? (
                 <div className="flex flex-col items-center justify-center h-full bg-slate-900/60 backdrop-blur-sm">
-                  <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                  <p className="mt-4 text-blue-300 font-mono text-sm animate-pulse">Running Graph Simulation…</p>
-                  <p className="mt-1 text-slate-500 text-xs">Extracting subgraph · Shockwave propagation · Dijkstra diversion</p>
+                  <div className="w-8 h-8 border-2 border-slate-500 border-t-transparent rounded-full animate-spin" />
+                  <p className="mt-4 text-slate-300 font-mono text-sm">Computing diversion routes…</p>
                 </div>
               ) : simError ? (
                 <div className="flex flex-col items-center justify-center h-full p-8 text-center">
@@ -445,9 +435,9 @@ export default function App() {
                 <iframe src={`${API}${hotspots.heatmap_url}`} className="w-full h-full border-0" title="Hotspot Heatmap" />
               ) : (
                 <div className="flex flex-col items-center justify-center h-full text-slate-500">
-                  <div className="text-4xl mb-3 animate-pulse">🔥</div>
-                  <p className="text-sm">Hotspot heatmap is being generated…</p>
-                  <p className="text-xs text-slate-600 mt-1">Mining 8,173 historical events</p>
+                  <div className="w-8 h-8 border-2 border-slate-500 border-t-transparent rounded-full animate-spin" />
+                  <p className="mt-4 text-slate-300 font-mono text-sm">Generating hotspot heatmap…</p>
+                  <p className="text-xs text-slate-500 mt-1">Processing historical events</p>
                 </div>
               )}
             </div>
@@ -456,11 +446,11 @@ export default function App() {
         </div>
 
         {/* ── RIGHT: Intelligence Panel ─────────────────────────────────────── */}
-        <div className="w-72 shrink-0 glass-panel flex flex-col overflow-hidden">
-          <div className="px-4 py-3 border-b border-slate-700/50 shrink-0">
-            <h2 className="font-semibold text-slate-200 text-sm">AI Intelligence Panel</h2>
+        <div className="w-72 shrink-0 bg-slate-900 border-l border-slate-800 flex flex-col overflow-hidden">
+          <div className="px-4 py-3 border-b border-slate-800 shrink-0">
+            <h2 className="font-semibold text-slate-200 text-sm">Operations Panel</h2>
             {selectedEvent && (
-              <p className="text-[10px] text-slate-400 mt-0.5 truncate">⚡ {selectedEvent.cause}</p>
+              <p className="text-xs text-slate-400 mt-0.5 truncate">{selectedEvent.cause}</p>
             )}
           </div>
 
@@ -473,11 +463,11 @@ export default function App() {
 
             {/* ── Section 1: Severity Prediction (shows immediately) ────────── */}
             {selectedEvent && (
-              <div className="rounded-lg border border-slate-700/50 overflow-hidden">
-                <div className="px-3 py-2 bg-slate-800/60 border-b border-slate-700/50 flex items-center justify-between">
-                  <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wider">ML Severity Prediction</span>
+              <div className="mb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-semibold text-slate-200">Severity Forecast</h3>
                   {severity?.model_r2 && (
-                    <span className="text-[9px] text-slate-500">R²={severity.model_r2}</span>
+                    <span className="text-xs font-mono text-slate-500">R²={severity.model_r2}</span>
                   )}
                 </div>
                 <div className="p-3 space-y-2">
@@ -487,28 +477,28 @@ export default function App() {
                     <>
                       <div className="flex items-center justify-between">
                         <LevelBadge level={severity.response_level} />
-                        <span className="text-[10px] text-slate-400">
+                        <span className="text-xs text-slate-400">
                           Confidence: {Math.round((severity.confidence ?? 0) * 100)}%
                         </span>
                       </div>
                       <SeverityBar score={severity.severity_score} />
-                      <div className="grid grid-cols-2 gap-2 mt-2">
-                        <div className="bg-slate-900/50 rounded p-2 text-center">
-                          <div className="text-[9px] text-slate-500 uppercase">Est. Resolution</div>
-                          <div className="text-sm font-bold text-cyan-300">{severity.resolution_label}</div>
+                      <div className="grid grid-cols-2 gap-4 mt-4">
+                        <div>
+                          <div className="text-xs text-slate-400">Est. Resolution</div>
+                          <div className="text-lg font-mono text-slate-100">{severity.resolution_label}</div>
                         </div>
-                        <div className="bg-slate-900/50 rounded p-2 text-center">
-                          <div className="text-[9px] text-slate-500 uppercase">Nearby Events</div>
-                          <div className="text-sm font-bold text-purple-300">{severity.nearby_historical_events ?? '…'}</div>
+                        <div>
+                          <div className="text-xs text-slate-400">Nearby Events</div>
+                          <div className="text-lg font-mono text-slate-100">{severity.nearby_historical_events ?? '—'}</div>
                         </div>
                       </div>
                       {severity.nearby_cause_breakdown && Object.keys(severity.nearby_cause_breakdown).length > 0 && (
-                        <div className="mt-1">
-                          <div className="text-[9px] text-slate-500 uppercase mb-1">Historical Cause Breakdown (2km)</div>
+                        <div className="mt-4">
+                          <div className="text-xs text-slate-400 mb-1 border-b border-slate-800 pb-1">Historical Cause Breakdown (2km)</div>
                           {Object.entries(severity.nearby_cause_breakdown).slice(0, 3).map(([cause, cnt]) => (
-                            <div key={cause} className="flex justify-between text-[10px] text-slate-400">
+                            <div key={cause} className="flex justify-between text-sm text-slate-300 mt-1">
                               <span className="capitalize">{cause.replace('_', ' ')}</span>
-                              <span className="text-slate-300">{cnt}</span>
+                              <span className="font-mono">{cnt}</span>
                             </div>
                           ))}
                         </div>
@@ -523,23 +513,15 @@ export default function App() {
 
             {/* ── Section 2: Simulation Metrics (shows after simulation) ─────── */}
             {simulation && mt && (
-              <div className="rounded-lg border border-slate-700/50 overflow-hidden">
-                <div className="px-3 py-2 bg-slate-800/60 border-b border-slate-700/50">
-                  <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wider">Simulation Results</span>
+              <div className="mb-4 pt-4 border-t border-slate-800">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold text-slate-200">Simulation Results</h3>
+                  <span className="text-xs text-slate-400">
+                    {mt.time_of_day_label}
+                  </span>
                 </div>
-                <div className="p-3 space-y-2">
-                  <div className="flex items-center gap-2">
-                    <span className={`text-[10px] px-2 py-0.5 rounded border ${
-                      mt.time_of_day_label === 'Rush Hour'
-                        ? 'bg-red-500/20 text-red-300 border-red-500/30'
-                        : mt.time_of_day_label === 'Night'
-                        ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30'
-                        : 'bg-green-500/20 text-green-300 border-green-500/30'
-                    } font-semibold uppercase`}>
-                      {mt.time_of_day_label} ×{mt.time_multiplier}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
                     <MetricCard
                       label="Time Saved"
                       value={fmtNum(mt.total_time_saved_minutes)}
@@ -558,23 +540,23 @@ export default function App() {
                       color="text-blue-300"
                     />
                     <MetricCard
-                      label="Barricades"
+                      label="Barricades Needed"
                       value={mt.barricades_needed}
-                      color="text-orange-400"
                     />
                   </div>
-                  <div className="space-y-1">
+                  <div className="space-y-2 mt-4">
+                    <div className="text-xs text-slate-400 mb-1 border-b border-slate-800 pb-1">Affected Flows</div>
                     {(simulation.flow_analysis ?? []).map(flow => (
-                      <div key={flow.flow_id} className="bg-slate-900/50 rounded p-2">
-                        <div className="flex justify-between text-[10px] font-semibold">
-                          <span className="text-slate-300">{flow.flow_id.toUpperCase()}</span>
-                          <span className={flow.valid_intervention ? 'text-emerald-400' : 'text-red-400'}>
-                            {flow.valid_intervention ? `SAVE ${flow.time_saved_minutes} MIN` : 'NO SAFE BENEFIT'}
+                      <div key={flow.flow_id} className="flex flex-col mb-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-slate-300">{flow.flow_id}</span>
+                          <span className={flow.valid_intervention ? 'text-emerald-400 font-mono' : 'text-slate-500'}>
+                            {flow.valid_intervention ? `Save ${fmtNum(flow.time_saved_minutes)}m` : 'No Benefit'}
                           </span>
                         </div>
-                        <div className="flex justify-between text-[9px] text-slate-500 mt-1">
-                          <span>Do nothing: {fmtNum(flow.without_intervention_minutes)} min</span>
-                          <span>Diverted: {fmtNum(flow.with_intervention_minutes)} min</span>
+                        <div className="flex justify-between text-xs text-slate-500">
+                          <span className="font-mono">Normal: {fmtNum(flow.without_intervention_minutes)}m</span>
+                          <span className="font-mono">Diverted: {fmtNum(flow.with_intervention_minutes)}m</span>
                         </div>
                       </div>
                     ))}
@@ -585,45 +567,43 @@ export default function App() {
 
             {/* ── Section 3: Manpower Plan (shows after simulation) ─────────── */}
             {mp && mp.total_officers >= 0 && (
-              <div className="rounded-lg border border-slate-700/50 overflow-hidden">
-                <div className="px-3 py-2 bg-slate-800/60 border-b border-slate-700/50 flex items-center justify-between">
-                  <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wider">Manpower Plan</span>
+              <div className="mb-4 pt-4 border-t border-slate-800">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold text-slate-200">Manpower Plan</h3>
                   <LevelBadge level={mp.response_level} />
                 </div>
-                <div className="p-3 space-y-2">
+                <div className="space-y-4">
                   {mp.total_officers === 0 ? (
-                    <p className="text-xs text-emerald-400">✅ {mp.note}</p>
+                    <p className="text-sm text-slate-400">{mp.note}</p>
                   ) : (
                     <>
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="grid grid-cols-2 gap-4">
                         <MetricCard
                           label="Total Officers"
                           value={mp.total_officers}
-                          color="text-blue-300"
                         />
                         <MetricCard
                           label="Shift Duration"
                           value={mp.shift_duration_hours}
                           unit="hrs"
-                          color="text-slate-200"
                         />
                       </div>
-                      <div className="bg-slate-900/50 rounded p-2">
-                        <div className="text-[9px] text-slate-500 uppercase mb-1">Deployment Breakdown</div>
-                        <div className="flex justify-between text-[10px]">
-                          <span className="text-slate-400">Per Barricade</span>
-                          <span className="text-blue-300 font-bold">{mp.officers_per_barricade} officers</span>
+                      <div className="mt-2 text-sm">
+                        <div className="text-xs text-slate-400 mb-1 border-b border-slate-800 pb-1">Deployment Breakdown</div>
+                        <div className="flex justify-between mt-1">
+                          <span className="text-slate-400">Officers / Barricade</span>
+                          <span className="text-slate-100 font-mono">{mp.officers_per_barricade}</span>
                         </div>
-                        <div className="flex justify-between text-[10px] mt-0.5">
-                          <span className="text-slate-400">Barricade Positions</span>
-                          <span className="text-slate-300">{mp.num_barricades}</span>
+                        <div className="flex justify-between mt-1">
+                          <span className="text-slate-400">Total Barricades</span>
+                          <span className="text-slate-100 font-mono">{mp.num_barricades}</span>
                         </div>
-                        <div className="flex justify-between text-[10px] mt-0.5">
+                        <div className="flex justify-between mt-1">
                           <span className="text-slate-400">Total Officer-Hours</span>
-                          <span className="text-amber-300 font-bold">{mp.officer_hours_total}</span>
+                          <span className="text-slate-100 font-mono">{mp.officer_hours_total}</span>
                         </div>
                       </div>
-                      <p className="text-[10px] text-slate-500 italic">{mp.urgency_note}</p>
+                      <p className="text-xs text-slate-500">{mp.urgency_note}</p>
                     </>
                   )}
                 </div>
@@ -631,29 +611,27 @@ export default function App() {
             )}
 
             {simulation && selectedEvent && (
-              <form onSubmit={submitFeedback} className="rounded-lg border border-cyan-700/40 overflow-hidden">
-                <div className="px-3 py-2 bg-cyan-950/30 border-b border-cyan-800/30">
-                  <span className="text-[10px] font-bold text-cyan-300 uppercase tracking-wider">Post-Event Learning</span>
-                </div>
-                <div className="p-3 space-y-1.5">
-                  <p className="text-[10px] text-slate-500">Record actual operations to measure forecast error.</p>
-                  <div className="grid grid-cols-2 gap-1">
-                    <input required name="resolution" min="1" type="number" className="form-control" placeholder="Actual minutes" />
+              <form onSubmit={submitFeedback} className="pt-4 border-t border-slate-800">
+                <h3 className="text-sm font-semibold text-slate-200 mb-2">Post-Event Review</h3>
+                <div className="space-y-2">
+                  <p className="text-xs text-slate-500 mb-2">Record actual operations.</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input required name="resolution" min="1" type="number" className="form-control" placeholder="Actual mins" />
                     <select required name="severity" className="form-control" defaultValue="Amber">
                       <option>Green</option><option>Amber</option><option>Red</option>
                     </select>
                     <input required name="officers" min="0" type="number" className="form-control" placeholder="Officers used" />
                     <input required name="barricades" min="0" type="number" className="form-control" placeholder="Barricades used" />
                   </div>
-                  <select required name="effective" className="form-control" defaultValue="yes">
+                  <select required name="effective" className="form-control mt-2" defaultValue="yes">
                     <option value="yes">Diversion effective</option>
                     <option value="no">Diversion ineffective</option>
                   </select>
-                  <input name="notes" className="form-control" placeholder="Operational notes" />
-                  <button className="w-full py-1.5 rounded bg-cyan-700/50 hover:bg-cyan-700/70 text-cyan-100 text-xs">
-                    Save actual outcome
+                  <input name="notes" className="form-control mt-2" placeholder="Operational notes" />
+                  <button className="w-full py-2 mt-2 rounded bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 text-sm font-medium">
+                    Save Record
                   </button>
-                  {feedbackStatus && <p className="text-[10px] text-cyan-300">{feedbackStatus}</p>}
+                  {feedbackStatus && <p className="text-xs text-slate-400">{feedbackStatus}</p>}
                 </div>
               </form>
             )}

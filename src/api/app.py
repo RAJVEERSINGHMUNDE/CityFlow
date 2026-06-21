@@ -224,44 +224,49 @@ from flask import send_from_directory
 
 @app.route('/api/maps/<task_id>')
 def serve_maps(task_id):
-    """Serves static map HTML directly from the database."""
+    """Serves dynamic map HTML directly from the database."""
     map_html = get_task_map(task_id)
     if not map_html:
         return "Map not found", 404
     return map_html
 
+@app.route('/maps/<path:filename>')
+def serve_static_maps(filename):
+    """Serves static map HTML files (like the heatmap)."""
+    return send_from_directory(MAPS_DIR, filename)
 
-    def _run_simulation_task(task_id, event_id, lat, lon, time_str, event_dict):
-        try:
-            import osmnx as ox
-            import networkx as nx
 
-            # ── Build local subgraph ───────────────────────────────────────────────
-            engine = GraphEngine(lat, lon, dist=1500)
-            
-            # Wait for global graph to be ready before proceeding
-            graph_ready_event.wait(timeout=60)
-            
-            if GraphEngine.GLOBAL_GRAPH is not None:
-                print(f"[Sim] Sub-graph from cache for ({lat:.4f}, {lon:.4f})")
-                G = engine.build_graph()
-                if not any('travel_time' in d for _, _, d in G.edges(data=True)):
-                    G = ox.add_edge_speeds(G)
-                    G = ox.add_edge_travel_times(G)
-            else:
-                print(f"[Sim] Cache miss — fetching from OSM for ({lat:.4f}, {lon:.4f})")
-                G = ox.graph_from_point((lat, lon), dist=1500, network_type='drive')
+def _run_simulation_task(task_id, event_id, lat, lon, time_str, event_dict):
+    try:
+        import osmnx as ox
+        import networkx as nx
+
+        # ── Build local subgraph ───────────────────────────────────────────────
+        engine = GraphEngine(lat, lon, dist=1500)
+        
+        # Wait for global graph to be ready before proceeding
+        graph_ready_event.wait(timeout=60)
+        
+        if GraphEngine.GLOBAL_GRAPH is not None:
+            print(f"[Sim] Sub-graph from cache for ({lat:.4f}, {lon:.4f})")
+            G = engine.build_graph()
+            if not any('travel_time' in d for _, _, d in G.edges(data=True)):
                 G = ox.add_edge_speeds(G)
                 G = ox.add_edge_travel_times(G)
-                engine.G = G
+        else:
+            print(f"[Sim] Cache miss — fetching from OSM for ({lat:.4f}, {lon:.4f})")
+            G = ox.graph_from_point((lat, lon), dist=1500, network_type='drive')
+            G = ox.add_edge_speeds(G)
+            G = ox.add_edge_travel_times(G)
+            engine.G = G
 
         seed = hash(event_id) & 0x7FFF_FFFF
         sim  = CongestionSimulator(G, lat, lon, start_datetime=time_str, seed=seed)
 
-            affected_flows = sim.find_affected_flows(max_flows=3)
-            if not affected_flows:
-                update_task_error(task_id, "No arterial traffic flow through this event could be identified.")
-                return
+        affected_flows = sim.find_affected_flows(max_flows=3)
+        if not affected_flows:
+            update_task_error(task_id, "No arterial traffic flow through this event could be identified.")
+            return
 
         closed, spillover = sim.simulate_congestion_shockwave(
             closure_radius=50, spillover_radius=300
@@ -285,41 +290,41 @@ def serve_maps(task_id):
             time_of_day_label = sim.time_of_day_label,
         )
 
-            map_html = sim.visualize_flows(flow_results, valid_barricades)
+        map_html = sim.visualize_flows(flow_results, valid_barricades)
 
-            valid_flows = [flow for flow in flow_results if flow['valid_intervention']]
-            total_saved = round(sum(flow['time_saved_minutes'] for flow in valid_flows), 1)
-            average_reduction = round(
-                sum(flow['delay_reduction_pct'] for flow in valid_flows) / len(valid_flows), 1
-            ) if valid_flows else 0.0
-            public_flows = [
-                {key: value for key, value in flow.items()
-                 if key not in ('normal_route', 'diverted_route')}
-                for flow in flow_results
-            ]
+        valid_flows = [flow for flow in flow_results if flow['valid_intervention']]
+        total_saved = round(sum(flow['time_saved_minutes'] for flow in valid_flows), 1)
+        average_reduction = round(
+            sum(flow['delay_reduction_pct'] for flow in valid_flows) / len(valid_flows), 1
+        ) if valid_flows else 0.0
+        public_flows = [
+            {key: value for key, value in flow.items()
+             if key not in ('normal_route', 'diverted_route')}
+            for flow in flow_results
+        ]
 
-            result_dict = {
-                "metrics": {
-                    "barricades_needed":     len(valid_barricades),
-                    "closed_edges":          len(closed),
-                    "affected_flows":        len(flow_results),
-                    "valid_diversions":      len(valid_flows),
-                    "total_time_saved_minutes": total_saved,
-                    "average_delay_reduction_pct": average_reduction,
-                    "time_of_day_label":     sim.time_of_day_label,
-                    "time_multiplier":       sim.time_multiplier,
-                },
-                "flow_analysis": public_flows,
-                "barricade_validation": barricade_validation,
-                "manpower_plan": manpower_plan,
-            }
-            
-            update_task_success(task_id, result_dict, map_html)
+        result_dict = {
+            "metrics": {
+                "barricades_needed":     len(valid_barricades),
+                "closed_edges":          len(closed),
+                "affected_flows":        len(flow_results),
+                "valid_diversions":      len(valid_flows),
+                "total_time_saved_minutes": total_saved,
+                "average_delay_reduction_pct": average_reduction,
+                "time_of_day_label":     sim.time_of_day_label,
+                "time_multiplier":       sim.time_multiplier,
+            },
+            "flow_analysis": public_flows,
+            "barricade_validation": barricade_validation,
+            "manpower_plan": manpower_plan,
+        }
+        
+        update_task_success(task_id, result_dict, map_html)
 
-        except Exception as e:
-            import traceback
-            traceback.print_exc()
-            update_task_error(task_id, str(e))
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        update_task_error(task_id, str(e))
 
 
 @app.route('/api/simulate/<event_id>', methods=['POST'])
