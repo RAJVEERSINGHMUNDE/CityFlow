@@ -128,30 +128,71 @@ class CongestionSimulator:
                 break
         return selected
 
-    def simulate_congestion_shockwave(self, closure_radius=50, spillover_radius=300):
-        """Propagate event impact upstream along connected road distance."""
-        print('Simulating topological congestion shockwave...')
+    @staticmethod
+    def _get_base_capacity_and_volume(highway_type):
+        """Estimate baseline capacity and volume (vehicles per hour) from road type."""
+        capacities = {
+            'motorway': (2000, 1800),
+            'trunk': (1800, 1500),
+            'primary': (1200, 1000),
+            'secondary': (1000, 800),
+            'tertiary': (800, 600),
+            'residential': (400, 200),
+            'unclassified': (400, 200)
+        }
+        return capacities.get(highway_type, (500, 250))
+
+    def simulate_congestion_shockwave(self, closure_radius=50, spillover_radius=1000):
+        """Propagate event impact upstream using topological capacity decay and BPR function."""
+        print('Simulating BPR topological congestion shockwave...')
         self._apply_time_of_day_weights()
         closed_edges = set()
         spillover_edges = set()
+        
+        # 1. Base Assignment
+        for u, v, k, data in self.G.edges(keys=True, data=True):
+            hw_type = self._highway_value(data)
+            cap, vol = self._get_base_capacity_and_volume(hw_type)
+            data['capacity'] = cap
+            data['volume'] = vol * self.time_multiplier
+            data['t0'] = float(data.get('travel_time', 10.0))
+        
+        # 2. Capacity Decay (Queue Spillback)
         queue = deque([(self.epicenter_node, 0.0)])
         visited = {self.epicenter_node: 0.0}
-
+        
         while queue:
             current_node, current_dist = queue.popleft()
-            for u, v, _, data in self.G.in_edges(current_node, keys=True, data=True):
-                new_dist = current_dist + float(data.get('length', 10.0))
+            for u, v, k, data in self.G.in_edges(current_node, keys=True, data=True):
+                edge_len = float(data.get('length', 10.0))
+                new_dist = current_dist + edge_len
+                
                 if new_dist > spillover_radius:
                     continue
+                    
                 if new_dist <= closure_radius:
-                    data['travel_time'] = float(data.get('travel_time', 10)) * 100
+                    # Effectively closed: capacity drops to near zero
+                    data['capacity'] *= 0.05
                     closed_edges.add((u, v))
                 else:
-                    data['travel_time'] = float(data.get('travel_time', 10)) * 5
+                    # Upstream bottleneck decay: capacity recovers linearly with distance
+                    decay_factor = min(1.0, 0.1 + 0.9 * (new_dist / spillover_radius))
+                    data['capacity'] *= decay_factor
                     spillover_edges.add((u, v))
+                    
                 if new_dist < visited.get(u, float('inf')):
                     visited[u] = new_dist
                     queue.append((u, new_dist))
+
+        # 3. BPR Travel Time Calculation
+        alpha = 0.15
+        beta = 4.0
+        for u, v, k, data in self.G.edges(keys=True, data=True):
+            if 't0' in data:
+                c = max(1.0, data['capacity'])
+                v_flow = data['volume']
+                data['travel_time'] = data['t0'] * (1.0 + alpha * (v_flow / c)**beta)
+
         return closed_edges, spillover_edges
 
     @staticmethod
@@ -279,8 +320,12 @@ class CongestionSimulator:
             })
         return details
 
-    def visualize_flows(self, flow_results, barricades, output_file):
-        print(f'Generating visualization at {output_file}...')
+    def visualize_flows(self, flow_results, barricades, output_file=None):
+        if output_file:
+            print(f'Generating visualization at {output_file}...')
+        else:
+            print('Generating visualization in memory...')
+            
         m = folium.Map(
             location=[self.epicenter_lat, self.epicenter_lon],
             zoom_start=14,
@@ -315,7 +360,11 @@ class CongestionSimulator:
                 color='orange', fill=True, fill_color='orange',
                 popup='Validated upstream barricade candidate',
             ).add_to(m)
-        m.save(output_file)
+            
+        if output_file:
+            m.save(output_file)
+            return None
+        return m.get_root().render()
 
     def visualize(self, origin, destination, normal_route, diverted_route, barricades,
                   output_file='diversion_plan.html'):

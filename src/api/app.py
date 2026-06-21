@@ -16,7 +16,8 @@ from hotspot_analyzer import init_analyzer, get_analyzer
 from manpower         import allocate_manpower
 from storage import (
     create_feedback, create_scenario, feedback_summary, get_scenario,
-    init_db, list_scenarios,
+    init_db, list_scenarios, create_task, update_task_success,
+    update_task_error, get_task, get_task_map
 )
 
 app  = Flask(__name__)
@@ -100,7 +101,7 @@ threading.Thread(target=_load_graph_background,          daemon=True).start()
 threading.Thread(target=_train_severity_model_background, daemon=True).start()
 threading.Thread(target=_build_hotspot_background,        daemon=True).start()
 
-tasks: dict = {}
+
 
 # ── API Routes ────────────────────────────────────────────────────────────────
 
@@ -221,45 +222,46 @@ def get_hotspots():
 
 from flask import send_from_directory
 
-@app.route('/maps/<path:filename>')
-def serve_maps(filename):
-    """Serves static map HTML files."""
-    return send_from_directory(MAPS_DIR, filename)
+@app.route('/api/maps/<task_id>')
+def serve_maps(task_id):
+    """Serves static map HTML directly from the database."""
+    map_html = get_task_map(task_id)
+    if not map_html:
+        return "Map not found", 404
+    return map_html
 
 
-def _run_simulation_task(task_id, event_id, lat, lon, time_str, event_dict):
-    try:
-        output_filename = f"map_{event_id}_{task_id}.html"
-        output_path     = os.path.join(MAPS_DIR, output_filename)
+    def _run_simulation_task(task_id, event_id, lat, lon, time_str, event_dict):
+        try:
+            import osmnx as ox
+            import networkx as nx
 
-        import osmnx as ox
-        import networkx as nx
-
-        # ── Build local subgraph ───────────────────────────────────────────────
-        engine = GraphEngine(lat, lon, dist=1500)
-        if GraphEngine.GLOBAL_GRAPH is not None:
-            print(f"[Sim] Sub-graph from cache for ({lat:.4f}, {lon:.4f})")
-            G = engine.build_graph()
-            if not any('travel_time' in d for _, _, d in G.edges(data=True)):
+            # ── Build local subgraph ───────────────────────────────────────────────
+            engine = GraphEngine(lat, lon, dist=1500)
+            
+            # Wait for global graph to be ready before proceeding
+            graph_ready_event.wait(timeout=60)
+            
+            if GraphEngine.GLOBAL_GRAPH is not None:
+                print(f"[Sim] Sub-graph from cache for ({lat:.4f}, {lon:.4f})")
+                G = engine.build_graph()
+                if not any('travel_time' in d for _, _, d in G.edges(data=True)):
+                    G = ox.add_edge_speeds(G)
+                    G = ox.add_edge_travel_times(G)
+            else:
+                print(f"[Sim] Cache miss — fetching from OSM for ({lat:.4f}, {lon:.4f})")
+                G = ox.graph_from_point((lat, lon), dist=1500, network_type='drive')
                 G = ox.add_edge_speeds(G)
                 G = ox.add_edge_travel_times(G)
-        else:
-            print(f"[Sim] Cache miss — fetching from OSM for ({lat:.4f}, {lon:.4f})")
-            G = ox.graph_from_point((lat, lon), dist=1500, network_type='drive')
-            G = ox.add_edge_speeds(G)
-            G = ox.add_edge_travel_times(G)
-            engine.G = G
+                engine.G = G
 
         seed = hash(event_id) & 0x7FFF_FFFF
         sim  = CongestionSimulator(G, lat, lon, start_datetime=time_str, seed=seed)
 
-        affected_flows = sim.find_affected_flows(max_flows=3)
-        if not affected_flows:
-            tasks[task_id] = {
-                "status": "error",
-                "error": "No arterial traffic flow through this event could be identified.",
-            }
-            return
+            affected_flows = sim.find_affected_flows(max_flows=3)
+            if not affected_flows:
+                update_task_error(task_id, "No arterial traffic flow through this event could be identified.")
+                return
 
         closed, spillover = sim.simulate_congestion_shockwave(
             closure_radius=50, spillover_radius=300
@@ -283,41 +285,41 @@ def _run_simulation_task(task_id, event_id, lat, lon, time_str, event_dict):
             time_of_day_label = sim.time_of_day_label,
         )
 
-        sim.visualize_flows(flow_results, valid_barricades, output_file=output_path)
+            map_html = sim.visualize_flows(flow_results, valid_barricades)
 
-        valid_flows = [flow for flow in flow_results if flow['valid_intervention']]
-        total_saved = round(sum(flow['time_saved_minutes'] for flow in valid_flows), 1)
-        average_reduction = round(
-            sum(flow['delay_reduction_pct'] for flow in valid_flows) / len(valid_flows), 1
-        ) if valid_flows else 0.0
-        public_flows = [
-            {key: value for key, value in flow.items()
-             if key not in ('normal_route', 'diverted_route')}
-            for flow in flow_results
-        ]
+            valid_flows = [flow for flow in flow_results if flow['valid_intervention']]
+            total_saved = round(sum(flow['time_saved_minutes'] for flow in valid_flows), 1)
+            average_reduction = round(
+                sum(flow['delay_reduction_pct'] for flow in valid_flows) / len(valid_flows), 1
+            ) if valid_flows else 0.0
+            public_flows = [
+                {key: value for key, value in flow.items()
+                 if key not in ('normal_route', 'diverted_route')}
+                for flow in flow_results
+            ]
 
-        tasks[task_id] = {
-            "status":  "success",
-            "map_url": f"/maps/{output_filename}",
-            "metrics": {
-                "barricades_needed":     len(valid_barricades),
-                "closed_edges":          len(closed),
-                "affected_flows":        len(flow_results),
-                "valid_diversions":      len(valid_flows),
-                "total_time_saved_minutes": total_saved,
-                "average_delay_reduction_pct": average_reduction,
-                "time_of_day_label":     sim.time_of_day_label,
-                "time_multiplier":       sim.time_multiplier,
-            },
-            "flow_analysis": public_flows,
-            "barricade_validation": barricade_validation,
-            "manpower_plan": manpower_plan,
-        }
+            result_dict = {
+                "metrics": {
+                    "barricades_needed":     len(valid_barricades),
+                    "closed_edges":          len(closed),
+                    "affected_flows":        len(flow_results),
+                    "valid_diversions":      len(valid_flows),
+                    "total_time_saved_minutes": total_saved,
+                    "average_delay_reduction_pct": average_reduction,
+                    "time_of_day_label":     sim.time_of_day_label,
+                    "time_multiplier":       sim.time_multiplier,
+                },
+                "flow_analysis": public_flows,
+                "barricade_validation": barricade_validation,
+                "manpower_plan": manpower_plan,
+            }
+            
+            update_task_success(task_id, result_dict, map_html)
 
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        tasks[task_id] = {"status": "error", "error": str(e)}
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            update_task_error(task_id, str(e))
 
 
 @app.route('/api/simulate/<event_id>', methods=['POST'])
@@ -326,8 +328,8 @@ def simulate_event(event_id):
     if not event:
         return jsonify({"error": "Event not found"}), 404
 
-    task_id          = str(uuid.uuid4())
-    tasks[task_id]   = {"status": "pending"}
+    task_id = str(uuid.uuid4())
+    create_task(task_id)
 
     threading.Thread(
         target=_run_simulation_task,
@@ -341,7 +343,7 @@ def simulate_event(event_id):
 
 @app.route('/api/status/<task_id>', methods=['GET'])
 def get_task_status(task_id):
-    task = tasks.get(task_id)
+    task = get_task(task_id)
     if not task:
         return jsonify({"error": "Task not found"}), 404
     return jsonify(task)

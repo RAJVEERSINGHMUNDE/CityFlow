@@ -54,6 +54,15 @@ def init_db():
                 notes TEXT,
                 created_at TEXT NOT NULL
             );
+            
+            CREATE TABLE IF NOT EXISTS tasks (
+                id TEXT PRIMARY KEY,
+                status TEXT NOT NULL,
+                result_json TEXT,
+                map_html TEXT,
+                error TEXT,
+                created_at TEXT NOT NULL
+            );
             """
         )
 
@@ -182,3 +191,44 @@ def _optional_float(value):
 
 def _optional_int(value):
     return int(value) if value not in (None, '') else None
+
+import json
+
+def create_task(task_id):
+    with _connect() as db:
+        db.execute(
+            "INSERT INTO tasks (id, status, created_at) VALUES (?, ?, ?)",
+            (task_id, 'pending', datetime.now(timezone.utc).isoformat())
+        )
+
+def update_task_success(task_id, result_dict, map_html):
+    with _connect() as db:
+        db.execute(
+            "UPDATE tasks SET status = 'success', result_json = ?, map_html = ? WHERE id = ?",
+            (json.dumps(result_dict), map_html, task_id)
+        )
+
+def update_task_error(task_id, error_msg):
+    with _connect() as db:
+        db.execute(
+            "UPDATE tasks SET status = 'error', error = ? WHERE id = ?",
+            (error_msg, task_id)
+        )
+
+def get_task(task_id):
+    with _connect() as db:
+        row = db.execute("SELECT * FROM tasks WHERE id = ?", (task_id,)).fetchone()
+    if not row:
+        return None
+    res = {'id': row['id'], 'status': row['status']}
+    if row['status'] == 'success' and row['result_json']:
+        res.update(json.loads(row['result_json']))
+        res['map_url'] = f"/api/maps/{task_id}"
+    elif row['status'] == 'error':
+        res['error'] = row['error']
+    return res
+
+def get_task_map(task_id):
+    with _connect() as db:
+        row = db.execute("SELECT map_html FROM tasks WHERE id = ?", (task_id,)).fetchone()
+    return row['map_html'] if row else None
