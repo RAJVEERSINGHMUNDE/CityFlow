@@ -11,8 +11,6 @@ const INITIAL_SCENARIO = {
   roads_affected: 'Major approaches near the event location',
 }
 
-// ── Utility helpers ───────────────────────────────────────────────────────────
-
 function fmtDateTime(iso) {
   if (!iso) return '—'
   try {
@@ -28,8 +26,6 @@ function fmtNum(n, decimals = 1) {
   return typeof n === 'number' ? n.toFixed(decimals) : n
 }
 
-// ── Sub-components ────────────────────────────────────────────────────────────
-
 function LevelBadge({ level }) {
   const styles = {
     Green: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
@@ -43,7 +39,6 @@ function LevelBadge({ level }) {
 }
 
 function SeverityBar({ score }) {
-  // score 0–10 → coloured fill
   const pct   = Math.min(100, (score / 10) * 100)
   const color = score >= 7 ? '#ef4444' : score >= 4 ? '#94a3b8' : '#22c55e'
   return (
@@ -91,7 +86,25 @@ function TabBtn({ id, active, onClick, children }) {
   )
 }
 
-// ── Main App ─────────────────────────────────────────────────────────────────
+function WelcomeBanner({ onDismiss }) {
+  return (
+    <div className="bg-blue-900/20 border border-blue-800/30 rounded-lg px-5 py-4 mb-3">
+      <div className="flex items-start justify-between">
+        <div className="space-y-1">
+          <p className="text-sm font-medium text-blue-300">
+            How this works
+          </p>
+          <ul className="text-xs text-blue-200/70 space-y-1 list-disc list-inside">
+            <li>Pick an event from the list on the left — these are real planned and unplanned events from Bengaluru traffic records.</li>
+            <li>The center panel shows a map of affected roads with recommended diversion routes.</li>
+            <li>The right panel breaks down the predicted impact and what resources would be needed.</li>
+          </ul>
+        </div>
+        <button onClick={onDismiss} className="text-blue-400/50 hover:text-blue-300 text-xs shrink-0 ml-4">Dismiss</button>
+      </div>
+    </div>
+  )
+}
 
 export default function App() {
   const [events,          setEvents]          = useState([])
@@ -108,10 +121,10 @@ export default function App() {
   const [scenarioForm,    setScenarioForm]    = useState(INITIAL_SCENARIO)
   const [scenarioError,   setScenarioError]   = useState('')
   const [feedbackStatus,  setFeedbackStatus]  = useState('')
+  const [showWelcome,     setShowWelcome]     = useState(true)
 
   const pollRef = useRef(null)
 
-  // ── Load events ────────────────────────────────────────────────────────────
   useEffect(() => {
     fetch(`${API}/api/events`)
       .then(r => { if (!r.ok) throw new Error(r.status); return r.json() })
@@ -119,7 +132,6 @@ export default function App() {
       .catch(() => setEventsError('Could not load events. Is the Flask API running?'))
   }, [])
 
-  // ── Load hotspot data ─────────────────────────────────────────────────────
   useEffect(() => {
     fetch(`${API}/api/hotspots`)
       .then(r => r.ok ? r.json() : null)
@@ -127,7 +139,6 @@ export default function App() {
       .catch(() => {})
   }, [])
 
-  // ── Polling control ───────────────────────────────────────────────────────
   const stopPolling = () => {
     if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null }
   }
@@ -159,7 +170,7 @@ export default function App() {
   const submitFeedback = async (e) => {
     e.preventDefault()
     const form = new FormData(e.currentTarget)
-    setFeedbackStatus('Saving outcome...')
+    setFeedbackStatus('Saving...')
     try {
       const response = await fetch(`${API}/api/feedback`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -178,14 +189,13 @@ export default function App() {
       })
       const data = await response.json()
       if (!response.ok) throw new Error(data.error ?? 'Could not save outcome')
-      setFeedbackStatus(`Saved. ${data.summary.total_outcomes} outcome(s) now inform evaluation.`)
+      setFeedbackStatus(`Saved. ${data.summary.total_outcomes} total records.`)
       e.currentTarget.reset()
     } catch (error) {
       setFeedbackStatus(error.message)
     }
   }
 
-  // ── Event click → fetch severity immediately, then kick simulation ────────
   const handleEventClick = async (event) => {
     stopPolling()
     setSelectedEvent(event)
@@ -195,18 +205,16 @@ export default function App() {
     setSimLoading(true)
     setSeverityLoading(true)
 
-    // 1️⃣  Severity prediction (fast — returns even before model is trained)
     try {
       const r    = await fetch(`${API}/api/severity/${event.id}`)
       const data = await r.json()
       setSeverity(data)
     } catch {
-      // non-fatal — simulation can still run
+      /* non-fatal — simulation still proceeds */
     } finally {
       setSeverityLoading(false)
     }
 
-    // 2️⃣  Start simulation asynchronously
     try {
       const r    = await fetch(`${API}/api/simulate/${event.id}`, { method: 'POST' })
       const data = await r.json()
@@ -245,57 +253,52 @@ export default function App() {
     }
   }
 
-  // ── Derived ───────────────────────────────────────────────────────────────
   const mp = simulation?.manpower_plan
   const mt = simulation?.metrics
 
-  // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="h-screen w-full flex flex-col p-3 gap-3 font-sans bg-slate-950">
+    <div className="h-screen w-full flex flex-col bg-slate-950">
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <header className="bg-slate-900 border-b border-slate-800 px-5 py-3 flex justify-between items-center shrink-0">
-        <div>
-          <h1 className="text-xl font-bold text-slate-100">
-            CityFlow: Traffic Management Dashboard
-          </h1>
-          <p className="text-sm text-slate-400">Predict traffic jams caused by city events and get AI-recommended diversion plans.</p>
+      <header className="bg-slate-900 border-b border-slate-800 px-6 py-3 flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-3">
+          <h1 className="text-base font-semibold text-slate-100 tracking-tight">CityFlow</h1>
+          <span className="text-slate-600 text-sm hidden sm:inline">Traffic event impact analysis &mdash; Bengaluru</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="px-3 py-1 bg-slate-800 text-slate-300 border border-slate-700 rounded text-xs">
-            {events.length} Events Loaded
-          </span>
           {hotspots && (
-            <span className="px-3 py-1 bg-slate-800 text-slate-300 border border-slate-700 rounded text-xs font-medium">
-              Hotspot Model Active
+            <span className="text-[11px] text-slate-500 border border-slate-700 rounded px-2 py-0.5">
+              {hotspots.summary_stats?.total_events?.toLocaleString() ?? '—'} historical events
             </span>
           )}
+          <span className="text-[11px] text-slate-600">
+            {events.length} events loaded
+          </span>
         </div>
       </header>
 
       {/* ── Main 3-column layout ──────────────────────────────────────────── */}
-      <div className="flex flex-1 overflow-hidden gap-3">
+      <div className="flex flex-1 overflow-hidden gap-px bg-slate-800">
 
         {/* ── LEFT: Event Feed ─────────────────────────────────────────────── */}
-        <div className="w-64 shrink-0 bg-slate-900 border-r border-slate-800 flex flex-col overflow-hidden">
-          <div className="px-4 py-3 border-b border-slate-800">
-            <div className="flex items-center justify-between gap-2">
-              <div>
-                <h2 className="font-semibold text-slate-200 text-sm">Step 1: Select an Event</h2>
-                <p className="text-xs text-slate-400 mt-0.5">Choose a planned event to see how it will affect city traffic.</p>
-              </div>
-              <button onClick={() => setShowScenario(value => !value)}
-                className="px-2 py-1 rounded bg-blue-500/20 text-blue-300 border border-blue-500/40 text-[10px]">
-                {showScenario ? 'Cancel' : '+ New'}
+        <div className="w-64 shrink-0 bg-slate-900 flex flex-col overflow-hidden">
+          <div className="px-4 py-3 border-b border-slate-800 shrink-0">
+            <div className="flex items-center justify-between mb-1">
+              <h2 className="text-sm font-medium text-slate-200">Events</h2>
+              <button onClick={() => setShowScenario(v => !v)}
+                className="px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700 text-[11px] hover:bg-slate-700">
+                {showScenario ? 'Cancel' : '+ Custom'}
               </button>
             </div>
+            <p className="text-[11px] text-slate-500">Select an event to analyze its traffic impact.</p>
           </div>
+
           {showScenario && (
-            <form onSubmit={createScenario} className="p-2 border-b border-slate-700/50 space-y-1.5 bg-slate-900/70">
+            <form onSubmit={createScenario} className="p-3 border-b border-slate-800 bg-slate-950/50 space-y-2">
               <input required value={scenarioForm.cause} aria-label="Event cause"
                 onChange={e => setScenarioForm({...scenarioForm, cause: e.target.value})}
                 className="form-control" placeholder="Event cause" />
-              <div className="grid grid-cols-2 gap-1">
+              <div className="grid grid-cols-2 gap-1.5">
                 <input required type="number" step="any" value={scenarioForm.latitude} aria-label="Latitude"
                   onChange={e => setScenarioForm({...scenarioForm, latitude: e.target.value})}
                   className="form-control" placeholder="Latitude" />
@@ -306,7 +309,7 @@ export default function App() {
               <input required type="datetime-local" value={scenarioForm.start_time} aria-label="Start time"
                 onChange={e => setScenarioForm({...scenarioForm, start_time: e.target.value})}
                 className="form-control" />
-              <div className="grid grid-cols-2 gap-1">
+              <div className="grid grid-cols-2 gap-1.5">
                 <select value={scenarioForm.event_type} aria-label="Event type"
                   onChange={e => setScenarioForm({...scenarioForm, event_type: e.target.value})}
                   className="form-control">
@@ -318,7 +321,7 @@ export default function App() {
                   <option value="full">Full closure</option><option value="partial">Partial closure</option>
                 </select>
               </div>
-              <div className="grid grid-cols-2 gap-1">
+              <div className="grid grid-cols-2 gap-1.5">
                 <input required min="0" type="number" value={scenarioForm.expected_attendance} aria-label="Expected attendance"
                   onChange={e => setScenarioForm({...scenarioForm, expected_attendance: e.target.value})}
                   className="form-control" placeholder="Attendance" />
@@ -329,115 +332,107 @@ export default function App() {
               <input value={scenarioForm.roads_affected} aria-label="Roads affected"
                 onChange={e => setScenarioForm({...scenarioForm, roads_affected: e.target.value})}
                 className="form-control" placeholder="Roads affected" />
-              <label className="flex gap-2 items-center text-[10px] text-slate-400">
+              <label className="flex items-center gap-2 text-[11px] text-slate-400">
                 <input type="checkbox" checked={scenarioForm.requires_closure}
                   onChange={e => setScenarioForm({...scenarioForm, requires_closure: e.target.checked})} />
                 Requires road closure
               </label>
-              {scenarioError && <p className="text-[10px] text-red-400">{scenarioError}</p>}
-              <button className="w-full py-1.5 rounded bg-blue-600 text-white text-xs font-semibold">
+              {scenarioError && <p className="text-[11px] text-red-400">{scenarioError}</p>}
+              <button className="w-full py-1.5 rounded bg-blue-600 text-white text-xs font-medium hover:bg-blue-500">
                 Create and simulate
               </button>
             </form>
           )}
-          <div className="flex-1 overflow-y-auto p-2 space-y-1.5 custom-scrollbar">
+
+          <div className="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar">
             {eventsError ? (
-              <div className="p-3 text-center text-red-400 text-xs">⚠️ {eventsError}</div>
+              <div className="p-4 text-center text-red-400 text-xs">{eventsError}</div>
             ) : events.length === 0 ? (
-              <div className="p-3 text-center text-slate-500 text-xs animate-pulse">Loading events…</div>
+              <div className="p-4 text-center text-slate-600 text-xs">Loading events...</div>
             ) : events.map(ev => (
               <div
                 key={ev.id}
                 onClick={() => handleEventClick(ev)}
-                className={`p-2.5 rounded-lg cursor-pointer transition-all duration-150 border ${
+                className={`p-2.5 rounded cursor-pointer transition-colors border ${
                   selectedEvent?.id === ev.id
-                    ? 'bg-blue-600/20 border-blue-500/50 shadow-lg shadow-blue-900/20'
-                    : 'bg-slate-800/30 border-transparent hover:bg-slate-700/40 hover:border-slate-600/40'
+                    ? 'bg-blue-900/20 border-blue-800/50'
+                    : 'border-transparent hover:bg-slate-800/50'
                 }`}
               >
-                <div className="flex justify-between items-start gap-1 mb-1">
-                  <span className="text-sm font-medium text-slate-200 leading-tight">{ev.cause}</span>
-                  <div className="flex gap-1 shrink-0">
-                    {ev.requires_closure && (
-                      <span className="text-[10px] px-1.5 py-0.5 bg-red-500/20 text-red-400 border border-red-500/30 rounded">
-                        CLOSURE
-                      </span>
-                    )}
-                  </div>
+                <div className="flex items-start justify-between gap-1 mb-0.5">
+                  <span className="text-sm text-slate-200 leading-tight">{ev.cause}</span>
+                  {ev.requires_closure && (
+                    <span className="text-[10px] px-1 py-0.5 bg-red-900/30 text-red-400 border border-red-800/40 rounded shrink-0">
+                      CLOSURE
+                    </span>
+                  )}
                 </div>
-                <div className="text-xs font-mono text-slate-400">{fmtDateTime(ev.time)}</div>
-                <div className="flex justify-between mt-1">
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded border bg-slate-800 text-slate-300 border-slate-700`}>
+                <div className="text-[11px] text-slate-500">{fmtDateTime(ev.time)}</div>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-[10px] px-1.5 py-0.5 rounded border bg-slate-800 text-slate-400 border-slate-700">
                     {ev.event_type}
                   </span>
-                  <span className="text-[10px] text-slate-500 font-mono">
-                    {ev.latitude?.toFixed(3)}, {ev.longitude?.toFixed(3)}
-                  </span>
+                  {ev.source === 'operator_scenario' && (
+                    <span className="text-[10px] text-slate-600">Custom</span>
+                  )}
                 </div>
-                {ev.source === 'operator_scenario' && (
-                  <div className="text-xs text-slate-400 mt-1">Operator Scenario</div>
-                )}
               </div>
             ))}
           </div>
         </div>
 
-        {/* ── CENTER: Map Viewer with Tabs ──────────────────────────────────── */}
-        <div className="flex-1 bg-slate-950 flex flex-col overflow-hidden border border-slate-800 rounded">
-          {/* Tab bar */}
-          <div className="flex items-center px-3 pt-2 gap-1 border-b border-slate-800 shrink-0 bg-slate-900">
+        {/* ── CENTER: Map Viewer ─────────────────────────────────────────────── */}
+        <div className="flex-1 bg-slate-950 flex flex-col overflow-hidden">
+          <div className="flex items-center px-4 gap-1 border-b border-slate-800 shrink-0 bg-slate-900">
             <TabBtn id="tab-simulation" active={activeTab === 'simulation'} onClick={() => setActiveTab('simulation')}>
-              Simulation Map
+              Diversion map
             </TabBtn>
             <TabBtn id="tab-hotspot" active={activeTab === 'hotspot'} onClick={() => setActiveTab('hotspot')}>
-              Hotspot Map
+              Historical hotspots
             </TabBtn>
           </div>
 
-          {/* Map area */}
           <div className="relative flex-1 overflow-hidden">
 
-            {/* ── Simulation tab ─────────────────────────────────────────── */}
             <div className={`absolute inset-0 ${activeTab === 'simulation' ? 'flex flex-col' : 'hidden'}`}>
               {simLoading ? (
-                <div className="flex flex-col items-center justify-center h-full bg-slate-900/60 backdrop-blur-sm">
-                  <div className="w-8 h-8 border-2 border-slate-500 border-t-transparent rounded-full animate-spin" />
-                  <p className="mt-4 text-slate-300 font-mono text-sm">Computing diversion routes…</p>
+                <div className="flex items-center justify-center h-full bg-slate-950">
+                  <div className="text-center">
+                    <div className="w-6 h-6 border-2 border-slate-600 border-t-transparent rounded-full animate-spin mx-auto" />
+                    <p className="mt-3 text-slate-500 text-xs">Calculating diversion routes...</p>
+                  </div>
                 </div>
               ) : simError ? (
                 <div className="flex flex-col items-center justify-center h-full p-8 text-center">
-                  <div className="text-4xl mb-3">🚨</div>
-                  <p className="text-red-400 text-sm mb-4">{simError}</p>
-                  <button
-                    onClick={() => selectedEvent && handleEventClick(selectedEvent)}
-                    className="px-4 py-2 bg-blue-600/30 hover:bg-blue-600/50 border border-blue-500/50 text-blue-300 rounded-lg text-sm transition-colors"
-                  >
-                    ↩ Retry
+                  <p className="text-red-400 text-sm mb-3">{simError}</p>
+                  <button onClick={() => selectedEvent && handleEventClick(selectedEvent)}
+                    className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 rounded text-xs">
+                    Retry
                   </button>
                 </div>
               ) : simulation?.map_url ? (
                 <iframe src={`${API}${simulation.map_url}`} className="w-full h-full border-0" title="Diversion Map" />
               ) : (
-                <div className="flex flex-col items-center justify-center h-full text-slate-500 max-w-sm mx-auto text-center">
-                  <svg className="w-14 h-14 mb-4 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="flex flex-col items-center justify-center h-full text-slate-600 max-w-xs mx-auto text-center px-4">
+                  <svg className="w-10 h-10 mb-3 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5"
                       d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
                   </svg>
-                  <p className="text-base text-slate-300 font-medium">Waiting for event selection</p>
-                  <p className="text-sm text-slate-500 mt-2">The map will show where traffic will be blocked and how cars should be diverted to avoid the jam.</p>
+                  <p className="text-sm text-slate-400 font-medium mb-1">No event selected</p>
+                  <p className="text-xs text-slate-600">Select an event from the left panel. The map will show affected roads and recommended traffic diversions.</p>
                 </div>
               )}
             </div>
 
-            {/* ── Hotspot tab ─────────────────────────────────────────────── */}
             <div className={`absolute inset-0 ${activeTab === 'hotspot' ? 'flex flex-col' : 'hidden'}`}>
               {hotspots?.heatmap_url ? (
                 <iframe src={`${API}${hotspots.heatmap_url}`} className="w-full h-full border-0" title="Hotspot Heatmap" />
               ) : (
-                <div className="flex flex-col items-center justify-center h-full text-slate-500">
-                  <div className="w-8 h-8 border-2 border-slate-500 border-t-transparent rounded-full animate-spin" />
-                  <p className="mt-4 text-slate-300 font-mono text-sm">Generating hotspot heatmap…</p>
-                  <p className="text-xs text-slate-500 mt-1">Processing historical events</p>
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-center">
+                    <div className="w-6 h-6 border-2 border-slate-600 border-t-transparent rounded-full animate-spin mx-auto" />
+                    <p className="mt-3 text-slate-500 text-xs">Loading hotspot data...</p>
+                  </div>
                 </div>
               )}
             </div>
@@ -446,196 +441,182 @@ export default function App() {
         </div>
 
         {/* ── RIGHT: Intelligence Panel ─────────────────────────────────────── */}
-        <div className="w-72 shrink-0 bg-slate-900 border-l border-slate-800 flex flex-col overflow-hidden">
+        <div className="w-72 shrink-0 bg-slate-900 flex flex-col overflow-hidden">
           <div className="px-4 py-3 border-b border-slate-800 shrink-0">
-            <h2 className="font-semibold text-slate-200 text-sm">Step 2: Analyze & Take Action</h2>
-            {selectedEvent ? (
-              <p className="text-xs text-slate-400 mt-0.5 truncate">{selectedEvent.cause}</p>
-            ) : (
-              <p className="text-xs text-slate-400 mt-0.5">Select an event on the left to get a step-by-step plan.</p>
-            )}
+            <h2 className="text-sm font-medium text-slate-200">Analysis</h2>
+            <p className="text-[11px] text-slate-500 mt-0.5">
+              {selectedEvent ? selectedEvent.cause : 'No event selected'}
+            </p>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-3 space-y-3 custom-scrollbar">
+          <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4 custom-scrollbar">
 
-            {/* ── Default state ─────────────────────────────────────────────── */}
+            {!selectedEvent && (
+              <div className="text-center py-8">
+                <p className="text-xs text-slate-600">Select an event to see the predicted impact, diversion plan, and resource requirements.</p>
+              </div>
+            )}
 
-            {/* ── Section 1: Severity Prediction (shows immediately) ────────── */}
+            {showWelcome && selectedEvent && (
+              <WelcomeBanner onDismiss={() => setShowWelcome(false)} />
+            )}
+
             {selectedEvent && (
-              <div className="mb-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-slate-200">Phase A: Understand the Impact</h3>
+              <section>
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Impact assessment</h3>
                   {severity?.model_r2 && (
-                    <span className="text-xs font-mono text-slate-500">R²={severity.model_r2}</span>
+                    <span className="text-[10px] text-slate-600">R&sup2;={severity.model_r2}</span>
                   )}
                 </div>
-                <p className="text-xs text-slate-400 mt-1 mb-2">Our AI predicts how bad the traffic will be on a scale of 1 to 10.</p>
-                <div className="p-3 space-y-2">
+                <div className="space-y-2">
                   {severityLoading ? (
-                    <div className="text-xs text-slate-500 animate-pulse">Running model…</div>
+                    <p className="text-xs text-slate-600">Running assessment...</p>
                   ) : severity ? (
                     <>
                       <div className="flex items-center justify-between">
                         <LevelBadge level={severity.response_level} />
-                        <span className="text-xs text-slate-400">
-                          Confidence: {Math.round((severity.confidence ?? 0) * 100)}%
+                        <span className="text-[11px] text-slate-500">
+                          {Math.round((severity.confidence ?? 0) * 100)}% confidence
                         </span>
                       </div>
                       <SeverityBar score={severity.severity_score} />
-                      <div className="grid grid-cols-2 gap-4 mt-4">
-                        <div>
-                          <div className="text-xs text-slate-400">Est. Resolution</div>
-                          <div className="text-lg font-mono text-slate-100">{severity.resolution_label}</div>
-                        </div>
-                        <div>
-                          <div className="text-xs text-slate-400">Nearby Events</div>
-                          <div className="text-lg font-mono text-slate-100">{severity.nearby_historical_events ?? '—'}</div>
-                        </div>
+                      <div className="grid grid-cols-2 gap-3 pt-1">
+                        <MetricCard
+                          label="Expected resolution"
+                          value={severity.resolution_label}
+                        />
+                        <MetricCard
+                          label="Nearby historical events"
+                          value={severity.nearby_historical_events ?? '—'}
+                        />
                       </div>
                       {severity.nearby_cause_breakdown && Object.keys(severity.nearby_cause_breakdown).length > 0 && (
-                        <div className="mt-4">
-                          <div className="text-xs text-slate-400 mb-1 border-b border-slate-800 pb-1">Historical Cause Breakdown (2km)</div>
+                        <div className="pt-2">
+                          <p className="text-[11px] text-slate-500 mb-1 border-b border-slate-800 pb-1">Nearby causes (2 km radius)</p>
                           {Object.entries(severity.nearby_cause_breakdown).slice(0, 3).map(([cause, cnt]) => (
-                            <div key={cause} className="flex justify-between text-sm text-slate-300 mt-1">
-                              <span className="capitalize">{cause.replace('_', ' ')}</span>
-                              <span className="font-mono">{cnt}</span>
+                            <div key={cause} className="flex justify-between text-xs text-slate-400 mt-1">
+                              <span className="capitalize">{cause.replace(/_/g, ' ')}</span>
+                              <span className="font-mono text-slate-300">{cnt}</span>
                             </div>
                           ))}
                         </div>
                       )}
                     </>
                   ) : (
-                    <div className="text-xs text-slate-500">No prediction available.</div>
+                    <p className="text-xs text-slate-600">Assessment pending.</p>
                   )}
                 </div>
-              </div>
+              </section>
             )}
 
-            {/* ── Section 2: Simulation Metrics (shows after simulation) ─────── */}
             {simulation && mt && (
-              <div className="mb-4 pt-4 border-t border-slate-800">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-slate-200">Phase B: Review Diversion Plan</h3>
-                  <span className="text-xs text-slate-400">
+              <section className="pt-3 border-t border-slate-800">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Diversion plan</h3>
+                  <span className="text-[10px] text-slate-600 border border-slate-700 rounded px-1.5 py-0.5">
                     {mt.time_of_day_label}
                   </span>
                 </div>
-                <p className="text-xs text-slate-400 mb-3 mt-1">This shows how much time we save drivers by putting up barricades and redirecting traffic.</p>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <MetricCard
-                      label="Time Saved"
-                      value={fmtNum(mt.total_time_saved_minutes)}
-                      unit="min"
-                      color="text-emerald-400"
-                    />
-                    <MetricCard
-                      label="Delay Reduction"
-                      value={fmtNum(mt.average_delay_reduction_pct)}
-                      unit="%"
-                      color="text-cyan-400"
-                    />
-                    <MetricCard
-                      label="Successfully Diverted"
-                      value={`${mt.valid_diversions}/${mt.affected_flows}`}
-                      color="text-blue-300"
-                    />
-                    <MetricCard
-                      label="Barricades Needed"
-                      value={mt.barricades_needed}
-                    />
-                  </div>
-                  <div className="space-y-2 mt-4">
-                    <div className="text-xs text-slate-400 mb-1 border-b border-slate-800 pb-1">Affected Flows</div>
-                    {(simulation.flow_analysis ?? []).map(flow => (
-                      <div key={flow.flow_id} className="flex flex-col mb-2">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-slate-300">{flow.flow_id}</span>
-                          <span className={flow.valid_intervention ? 'text-emerald-400 font-mono' : 'text-slate-500'}>
-                            {flow.valid_intervention ? `Save ${fmtNum(flow.time_saved_minutes)}m` : 'No Benefit'}
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-xs text-slate-500">
-                          <span className="font-mono">Normal: {fmtNum(flow.without_intervention_minutes)}m</span>
-                          <span className="font-mono">Diverted: {fmtNum(flow.with_intervention_minutes)}m</span>
-                        </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <MetricCard
+                    label="Time saved"
+                    value={fmtNum(mt.total_time_saved_minutes)}
+                    unit="min"
+                  />
+                  <MetricCard
+                    label="Delay reduction"
+                    value={fmtNum(mt.average_delay_reduction_pct)}
+                    unit="%"
+                  />
+                  <MetricCard
+                    label="Routes diverted"
+                    value={`${mt.valid_diversions}/${mt.affected_flows}`}
+                  />
+                  <MetricCard
+                    label="Barricades needed"
+                    value={mt.barricades_needed}
+                  />
+                </div>
+                {(simulation.flow_analysis ?? []).length > 0 && (
+                  <div className="mt-3">
+                    <p className="text-[11px] text-slate-500 mb-1 border-b border-slate-800 pb-1">Affected traffic flows</p>
+                    {simulation.flow_analysis.map(flow => (
+                      <div key={flow.flow_id} className="flex justify-between items-center py-1 text-xs">
+                        <span className="text-slate-400">{flow.flow_id}</span>
+                        <span className={`font-mono ${flow.valid_intervention ? 'text-emerald-400' : 'text-slate-600'}`}>
+                          {flow.valid_intervention
+                            ? `Save ${fmtNum(flow.time_saved_minutes)}m`
+                            : 'No benefit'}
+                        </span>
                       </div>
                     ))}
                   </div>
-                </div>
-              </div>
+                )}
+              </section>
             )}
 
-            {/* ── Section 3: Manpower Plan (shows after simulation) ─────────── */}
             {mp && mp.total_officers >= 0 && (
-              <div className="mb-4 pt-4 border-t border-slate-800">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-slate-200">Phase C: Deploy Police Officers</h3>
+              <section className="pt-3 border-t border-slate-800">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Resource allocation</h3>
                   <LevelBadge level={mp.response_level} />
                 </div>
-                <p className="text-xs text-slate-400 mb-3 mt-1">The exact number of traffic police officers and barricades needed to enforce this diversion.</p>
-                <div className="space-y-4">
-                  {mp.total_officers === 0 ? (
-                    <p className="text-sm text-slate-400">{mp.note}</p>
-                  ) : (
-                    <>
-                      <div className="grid grid-cols-2 gap-4">
-                        <MetricCard
-                          label="Total Officers"
-                          value={mp.total_officers}
-                        />
-                        <MetricCard
-                          label="Shift Duration"
-                          value={mp.shift_duration_hours}
-                          unit="hrs"
-                        />
-                      </div>
-                      <div className="mt-2 text-sm">
-                        <div className="text-xs text-slate-400 mb-1 border-b border-slate-800 pb-1">Deployment Breakdown</div>
-                        <div className="flex justify-between mt-1">
-                          <span className="text-slate-400">Officers / Barricade</span>
-                          <span className="text-slate-100 font-mono">{mp.officers_per_barricade}</span>
+                {mp.total_officers === 0 ? (
+                  <p className="text-xs text-slate-500">{mp.note}</p>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <MetricCard label="Total officers" value={mp.total_officers} />
+                      <MetricCard label="Shift duration" value={mp.shift_duration_hours} unit="hrs" />
+                    </div>
+                    <div>
+                      <p className="text-[11px] text-slate-500 mb-1 border-b border-slate-800 pb-1">Breakdown</p>
+                      <div className="space-y-1 mt-1">
+                        <div className="flex justify-between text-xs">
+                          <span className="text-slate-500">Officers per barricade</span>
+                          <span className="text-slate-300 font-mono">{mp.officers_per_barricade}</span>
                         </div>
-                        <div className="flex justify-between mt-1">
-                          <span className="text-slate-400">Total Barricades</span>
-                          <span className="text-slate-100 font-mono">{mp.num_barricades}</span>
+                        <div className="flex justify-between text-xs">
+                          <span className="text-slate-500">Total barricades</span>
+                          <span className="text-slate-300 font-mono">{mp.num_barricades}</span>
                         </div>
-                        <div className="flex justify-between mt-1">
-                          <span className="text-slate-400">Total Officer-Hours</span>
-                          <span className="text-slate-100 font-mono">{mp.officer_hours_total}</span>
+                        <div className="flex justify-between text-xs">
+                          <span className="text-slate-500">Total officer-hours</span>
+                          <span className="text-slate-300 font-mono">{mp.officer_hours_total}</span>
                         </div>
                       </div>
-                      <p className="text-xs text-slate-500">{mp.urgency_note}</p>
-                    </>
-                  )}
-                </div>
-              </div>
+                    </div>
+                    <p className="text-[11px] text-slate-600 italic">{mp.urgency_note}</p>
+                  </div>
+                )}
+              </section>
             )}
 
             {simulation && selectedEvent && (
-              <form onSubmit={submitFeedback} className="pt-4 border-t border-slate-800">
-                <h3 className="text-sm font-semibold text-slate-200">Phase D: Log What Actually Happened</h3>
-                <p className="text-xs text-slate-400 mb-3 mt-1">After the event is over, record what really happened so our AI can learn and improve for next time.</p>
-                <div className="space-y-2">
-                  <div className="grid grid-cols-2 gap-2">
-                    <input required name="resolution" min="1" type="number" className="form-control" placeholder="Actual mins" />
+              <section className="pt-3 border-t border-slate-800">
+                <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Record actual outcome</h3>
+                <p className="text-[11px] text-slate-500 mb-3">After the event, log what happened so future predictions improve.</p>
+                <form onSubmit={submitFeedback} className="space-y-2">
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <input required name="resolution" min="1" type="number" className="form-control" placeholder="Resolution (min)" />
                     <select required name="severity" className="form-control" defaultValue="Amber">
                       <option>Green</option><option>Amber</option><option>Red</option>
                     </select>
                     <input required name="officers" min="0" type="number" className="form-control" placeholder="Officers used" />
                     <input required name="barricades" min="0" type="number" className="form-control" placeholder="Barricades used" />
                   </div>
-                  <select required name="effective" className="form-control mt-2" defaultValue="yes">
-                    <option value="yes">Diversion effective</option>
-                    <option value="no">Diversion ineffective</option>
+                  <select required name="effective" className="form-control" defaultValue="yes">
+                    <option value="yes">Diversion worked</option>
+                    <option value="no">Diversion did not work</option>
                   </select>
-                  <input name="notes" className="form-control mt-2" placeholder="Operational notes" />
-                  <button className="w-full py-2 mt-2 rounded bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 text-sm font-medium">
-                    Save Record
+                  <input name="notes" className="form-control" placeholder="Notes (optional)" />
+                  <button className="w-full py-1.5 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-xs font-medium">
+                    Save record
                   </button>
-                  {feedbackStatus && <p className="text-xs text-slate-400">{feedbackStatus}</p>}
-                </div>
-              </form>
+                  {feedbackStatus && <p className="text-[11px] text-slate-500">{feedbackStatus}</p>}
+                </form>
+              </section>
             )}
 
           </div>
