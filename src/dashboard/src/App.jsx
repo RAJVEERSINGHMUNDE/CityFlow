@@ -257,9 +257,9 @@ export default function App() {
       <header className="bg-slate-900 border-b border-slate-800 px-5 py-3 flex justify-between items-center shrink-0">
         <div>
           <h1 className="text-xl font-bold text-slate-100">
-            CityFlow
+            CityFlow: Traffic Management Dashboard
           </h1>
-          <p className="text-sm text-slate-400">Event-Driven Congestion Simulator</p>
+          <p className="text-sm text-slate-400">Predict traffic jams caused by city events and get AI-recommended diversion plans.</p>
         </div>
         <div className="flex items-center gap-2">
           <span className="px-3 py-1 bg-slate-800 text-slate-300 border border-slate-700 rounded text-xs">
@@ -281,8 +281,8 @@ export default function App() {
           <div className="px-4 py-3 border-b border-slate-800">
             <div className="flex items-center justify-between gap-2">
               <div>
-                <h2 className="font-semibold text-slate-200 text-sm">Event Scenarios</h2>
-                <p className="text-xs text-slate-500 mt-0.5">Historical & operators</p>
+                <h2 className="font-semibold text-slate-200 text-sm">Step 1: Select an Event</h2>
+                <p className="text-xs text-slate-400 mt-0.5">Choose a planned event to see how it will affect city traffic.</p>
               </div>
               <button onClick={() => setShowScenario(value => !value)}
                 className="px-2 py-1 rounded bg-blue-500/20 text-blue-300 border border-blue-500/40 text-[10px]">
@@ -418,13 +418,13 @@ export default function App() {
               ) : simulation?.map_url ? (
                 <iframe src={`${API}${simulation.map_url}`} className="w-full h-full border-0" title="Diversion Map" />
               ) : (
-                <div className="flex flex-col items-center justify-center h-full text-slate-500">
+                <div className="flex flex-col items-center justify-center h-full text-slate-500 max-w-sm mx-auto text-center">
                   <svg className="w-14 h-14 mb-4 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5"
                       d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
                   </svg>
-                  <p className="text-sm">Select an event to run the Digital Twin simulation</p>
-                  <p className="text-xs text-slate-600 mt-1">Graph AI will compute diversion + barricade plan</p>
+                  <p className="text-base text-slate-300 font-medium">Waiting for event selection</p>
+                  <p className="text-sm text-slate-500 mt-2">The map will show where traffic will be blocked and how cars should be diverted to avoid the jam.</p>
                 </div>
               )}
             </div>
@@ -448,28 +448,28 @@ export default function App() {
         {/* ── RIGHT: Intelligence Panel ─────────────────────────────────────── */}
         <div className="w-72 shrink-0 bg-slate-900 border-l border-slate-800 flex flex-col overflow-hidden">
           <div className="px-4 py-3 border-b border-slate-800 shrink-0">
-            <h2 className="font-semibold text-slate-200 text-sm">Operations Panel</h2>
-            {selectedEvent && (
+            <h2 className="font-semibold text-slate-200 text-sm">Step 2: Analyze & Take Action</h2>
+            {selectedEvent ? (
               <p className="text-xs text-slate-400 mt-0.5 truncate">{selectedEvent.cause}</p>
+            ) : (
+              <p className="text-xs text-slate-400 mt-0.5">Select an event on the left to get a step-by-step plan.</p>
             )}
           </div>
 
           <div className="flex-1 overflow-y-auto p-3 space-y-3 custom-scrollbar">
 
             {/* ── Default state ─────────────────────────────────────────────── */}
-            {!selectedEvent && (
-              <p className="text-xs text-slate-500 italic pt-2">Select an event to see AI predictions.</p>
-            )}
 
             {/* ── Section 1: Severity Prediction (shows immediately) ────────── */}
             {selectedEvent && (
               <div className="mb-4">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-sm font-semibold text-slate-200">Severity Forecast</h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-slate-200">Phase A: Understand the Impact</h3>
                   {severity?.model_r2 && (
                     <span className="text-xs font-mono text-slate-500">R²={severity.model_r2}</span>
                   )}
                 </div>
+                <p className="text-xs text-slate-400 mt-1 mb-2">Our AI predicts how bad the traffic will be on a scale of 1 to 10.</p>
                 <div className="p-3 space-y-2">
                   {severityLoading ? (
                     <div className="text-xs text-slate-500 animate-pulse">Running model…</div>
@@ -514,12 +514,13 @@ export default function App() {
             {/* ── Section 2: Simulation Metrics (shows after simulation) ─────── */}
             {simulation && mt && (
               <div className="mb-4 pt-4 border-t border-slate-800">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-slate-200">Simulation Results</h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-slate-200">Phase B: Review Diversion Plan</h3>
                   <span className="text-xs text-slate-400">
                     {mt.time_of_day_label}
                   </span>
                 </div>
+                <p className="text-xs text-slate-400 mb-3 mt-1">This shows how much time we save drivers by putting up barricades and redirecting traffic.</p>
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <MetricCard
@@ -535,7 +536,7 @@ export default function App() {
                       color="text-cyan-400"
                     />
                     <MetricCard
-                      label="Valid Diversions"
+                      label="Successfully Diverted"
                       value={`${mt.valid_diversions}/${mt.affected_flows}`}
                       color="text-blue-300"
                     />
@@ -568,10 +569,11 @@ export default function App() {
             {/* ── Section 3: Manpower Plan (shows after simulation) ─────────── */}
             {mp && mp.total_officers >= 0 && (
               <div className="mb-4 pt-4 border-t border-slate-800">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold text-slate-200">Manpower Plan</h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-slate-200">Phase C: Deploy Police Officers</h3>
                   <LevelBadge level={mp.response_level} />
                 </div>
+                <p className="text-xs text-slate-400 mb-3 mt-1">The exact number of traffic police officers and barricades needed to enforce this diversion.</p>
                 <div className="space-y-4">
                   {mp.total_officers === 0 ? (
                     <p className="text-sm text-slate-400">{mp.note}</p>
@@ -612,9 +614,9 @@ export default function App() {
 
             {simulation && selectedEvent && (
               <form onSubmit={submitFeedback} className="pt-4 border-t border-slate-800">
-                <h3 className="text-sm font-semibold text-slate-200 mb-2">Post-Event Review</h3>
+                <h3 className="text-sm font-semibold text-slate-200">Phase D: Log What Actually Happened</h3>
+                <p className="text-xs text-slate-400 mb-3 mt-1">After the event is over, record what really happened so our AI can learn and improve for next time.</p>
                 <div className="space-y-2">
-                  <p className="text-xs text-slate-500 mb-2">Record actual operations.</p>
                   <div className="grid grid-cols-2 gap-2">
                     <input required name="resolution" min="1" type="number" className="form-control" placeholder="Actual mins" />
                     <select required name="severity" className="form-control" defaultValue="Amber">
