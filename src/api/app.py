@@ -2,7 +2,7 @@ import os
 import sys
 import uuid
 import threading
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 
 # Add simulator directory to path
@@ -14,6 +14,10 @@ from simulator        import CongestionSimulator
 from severity_model   import get_predictor, model_ready_event
 from hotspot_analyzer import init_analyzer, get_analyzer
 from manpower         import allocate_manpower
+from storage import (
+    create_feedback, create_scenario, feedback_summary, get_scenario,
+    init_db, list_scenarios,
+)
 
 app  = Flask(__name__)
 CORS(app)
@@ -27,6 +31,7 @@ if not os.path.exists(DATA_PATH):
 
 pipeline = DataPipeline(DATA_PATH)
 pipeline.load_and_clean_data()
+init_db()
 
 # Cached events list (avoid full scan on every simulate call)
 _events_cache: list | None = None
@@ -39,6 +44,13 @@ def get_cached_events(n: int = 500) -> list:
 
 # Pre-populate cache
 get_cached_events()
+
+
+def find_event(event_id: str):
+    return (
+        next((event for event in get_cached_events() if event['id'] == event_id), None)
+        or get_scenario(event_id)
+    )
 
 # ── Maps output dir ────────────────────────────────────────────────────────────
 MAPS_DIR = os.path.abspath(
@@ -94,7 +106,70 @@ tasks: dict = {}
 
 @app.route('/api/events', methods=['GET'])
 def get_events():
-    return jsonify({"events": pipeline.get_top_events(50)})
+    return jsonify({
+        "events": pipeline.get_top_events(50),
+        "scenarios": list_scenarios(),
+    })
+
+
+@app.route('/api/scenarios', methods=['GET', 'POST'])
+def scenarios():
+    if request.method == 'GET':
+        return jsonify({'scenarios': list_scenarios()})
+    payload = request.get_json(silent=True) or {}
+    error = _validate_scenario(payload)
+    if error:
+        return jsonify({'error': error}), 400
+    return jsonify({'scenario': create_scenario(payload)}), 201
+
+
+def _validate_scenario(payload):
+    required = ['cause', 'latitude', 'longitude', 'event_type', 'start_time',
+                'closure_severity', 'requires_closure']
+    missing = [field for field in required if payload.get(field) in (None, '')]
+    if missing:
+        return f"Missing required fields: {', '.join(missing)}"
+    try:
+        lat, lon = float(payload['latitude']), float(payload['longitude'])
+        attendance = int(payload.get('expected_attendance') or 0)
+    except (TypeError, ValueError):
+        return 'Coordinates and attendance must be numeric.'
+    if not (12.6 <= lat <= 13.4 and 77.2 <= lon <= 78.1):
+        return 'Scenario coordinates must be within the Bengaluru operating area.'
+    if attendance < 0:
+        return 'Expected attendance cannot be negative.'
+    if payload['event_type'] not in ('planned', 'unplanned'):
+        return 'event_type must be planned or unplanned.'
+    if payload['closure_severity'] not in ('partial', 'full'):
+        return 'closure_severity must be partial or full.'
+    if not isinstance(payload['requires_closure'], bool):
+        return 'requires_closure must be a boolean.'
+    return None
+
+
+@app.route('/api/feedback', methods=['POST'])
+def submit_feedback():
+    payload = request.get_json(silent=True) or {}
+    required = ['event_id', 'actual_resolution_minutes', 'actual_officers',
+                'actual_barricades', 'observed_severity', 'diversion_effective']
+    missing = [field for field in required if payload.get(field) in (None, '')]
+    if missing:
+        return jsonify({'error': f"Missing required fields: {', '.join(missing)}"}), 400
+    if payload['observed_severity'] not in ('Green', 'Amber', 'Red'):
+        return jsonify({'error': 'observed_severity must be Green, Amber, or Red.'}), 400
+    try:
+        if any(float(payload[field]) < 0 for field in
+               ('actual_resolution_minutes', 'actual_officers', 'actual_barricades')):
+            raise ValueError
+        outcome = create_feedback(payload)
+    except (TypeError, ValueError):
+        return jsonify({'error': 'Actual outcome values must be non-negative numbers.'}), 400
+    return jsonify({'outcome': outcome, 'summary': feedback_summary()}), 201
+
+
+@app.route('/api/feedback/summary', methods=['GET'])
+def get_feedback_summary():
+    return jsonify(feedback_summary())
 
 
 @app.route('/api/severity/<event_id>', methods=['GET'])
@@ -103,7 +178,7 @@ def get_severity(event_id):
     Fast severity prediction for a single event (< 5ms after model loads).
     Returns immediately using rule-based fallback if ML model isn't trained yet.
     """
-    event = next((e for e in get_cached_events() if e['id'] == event_id), None)
+    event = find_event(event_id)
     if not event:
         return jsonify({"error": "Event not found"}), 404
 
@@ -178,53 +253,64 @@ def _run_simulation_task(task_id, event_id, lat, lon, time_str, event_dict):
         seed = hash(event_id) & 0x7FFF_FFFF
         sim  = CongestionSimulator(G, lat, lon, start_datetime=time_str, seed=seed)
 
-        origin, destination = sim.get_arterial_od_pair()
-
-        try:
-            normal_route = nx.shortest_path(G, origin, destination, weight='travel_time')
-        except nx.NetworkXNoPath:
-            tasks[task_id] = {"status": "error", "error": "No valid route found between arterial endpoints."}
+        affected_flows = sim.find_affected_flows(max_flows=3)
+        if not affected_flows:
+            tasks[task_id] = {
+                "status": "error",
+                "error": "No arterial traffic flow through this event could be identified.",
+            }
             return
 
-        closed, spillover = sim.simulate_congestion_shockwave(closure_radius=50, spillover_radius=300)
-        diverted_route    = sim.calculate_diversion(origin, destination)
-        barricades        = sim.recommend_barricades(closed)
+        closed, spillover = sim.simulate_congestion_shockwave(
+            closure_radius=50, spillover_radius=300
+        )
+        flow_results = sim.evaluate_interventions(affected_flows, closed)
+        barricades = sim.recommend_barricades(closed)
+        barricade_validation = sim.validate_barricades(barricades, closed)
+        valid_barricades = [item['node_id'] for item in barricade_validation if item['valid']]
 
         # ── Enriched metrics ──────────────────────────────────────────────────
-        delay_min  = sim.get_delay_estimate(normal_route, diverted_route)
-        div_km     = sim.get_route_distance_km(diverted_route) if diverted_route else 0.0
-        normal_km  = sim.get_route_distance_km(normal_route)
-
         # ── Severity (use cached prediction if available) ─────────────────────
         predictor = get_predictor()
         severity  = predictor.predict(event_dict)
 
         # ── Manpower plan ─────────────────────────────────────────────────────
         manpower_plan = allocate_manpower(
-            barricade_nodes   = barricades,
+            barricade_nodes   = valid_barricades,
             severity_result   = severity,
             event_dict        = event_dict,
             graph             = G,
             time_of_day_label = sim.time_of_day_label,
         )
 
-        sim.visualize(origin, destination, normal_route, diverted_route,
-                      barricades, output_file=output_path)
+        sim.visualize_flows(flow_results, valid_barricades, output_file=output_path)
+
+        valid_flows = [flow for flow in flow_results if flow['valid_intervention']]
+        total_saved = round(sum(flow['time_saved_minutes'] for flow in valid_flows), 1)
+        average_reduction = round(
+            sum(flow['delay_reduction_pct'] for flow in valid_flows) / len(valid_flows), 1
+        ) if valid_flows else 0.0
+        public_flows = [
+            {key: value for key, value in flow.items()
+             if key not in ('normal_route', 'diverted_route')}
+            for flow in flow_results
+        ]
 
         tasks[task_id] = {
             "status":  "success",
             "map_url": f"/maps/{output_filename}",
             "metrics": {
-                "barricades_needed":     len(barricades),
+                "barricades_needed":     len(valid_barricades),
                 "closed_edges":          len(closed),
-                "original_route_nodes":  len(normal_route),
-                "diverted_route_nodes":  len(diverted_route) if diverted_route else 0,
-                "delay_added_minutes":   delay_min,
-                "diversion_distance_km": div_km,
-                "normal_distance_km":    normal_km,
+                "affected_flows":        len(flow_results),
+                "valid_diversions":      len(valid_flows),
+                "total_time_saved_minutes": total_saved,
+                "average_delay_reduction_pct": average_reduction,
                 "time_of_day_label":     sim.time_of_day_label,
                 "time_multiplier":       sim.time_multiplier,
             },
+            "flow_analysis": public_flows,
+            "barricade_validation": barricade_validation,
             "manpower_plan": manpower_plan,
         }
 
@@ -236,7 +322,7 @@ def _run_simulation_task(task_id, event_id, lat, lon, time_str, event_dict):
 
 @app.route('/api/simulate/<event_id>', methods=['POST'])
 def simulate_event(event_id):
-    event = next((e for e in get_cached_events() if e['id'] == event_id), None)
+    event = find_event(event_id)
     if not event:
         return jsonify({"error": "Event not found"}), 404
 

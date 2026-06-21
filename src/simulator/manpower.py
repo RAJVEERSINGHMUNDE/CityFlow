@@ -89,6 +89,11 @@ def allocate_manpower(
         officers_per += 1     # Extra officer to manage peak traffic volume
     if time_of_day_label == 'Night':
         officers_per = max(1, officers_per - 1)   # Reduced night volume
+    attendance = int(event_dict.get('expected_attendance') or 0)
+    if attendance >= 10_000:
+        officers_per += 2
+    elif attendance >= 2_000:
+        officers_per += 1
 
     # ── Shift duration ────────────────────────────────────────────────────────
     # Derived from ML-predicted resolution time, clamped to [2h, 8h]
@@ -125,4 +130,10 @@ def allocate_manpower(
         'response_color':         _LEVEL_COLORS.get(response_level, '#f59e0b'),
         'urgency_note':           urgency_notes.get(response_level, ''),
         'barricade_details':      barricade_details,
+        'allocation_basis':       {
+            'response_level': response_level,
+            'requires_closure': bool(requires_closure),
+            'time_of_day': time_of_day_label,
+            'expected_attendance': attendance,
+        },
     }

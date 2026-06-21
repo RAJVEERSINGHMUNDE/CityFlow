@@ -1,0 +1,17 @@
+[Unit]
+Description=CityFlow Flask API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/root/cityflow
+ExecStart=/root/cityflow/venv/bin/python /root/cityflow/src/api/app.py
+Restart=on-failure
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+StandardOutput=append:/root/cityflow/backend.log
+StandardError=append:/root/cityflow/backend.log
+
+[Install]
+WantedBy=multi-user.target

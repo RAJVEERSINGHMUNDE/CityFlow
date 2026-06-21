@@ -7,6 +7,15 @@ Deliverables for the CityFlow Digital Twin submission: here is the checklist of 
 - **Format**: Public or Private GitHub Repository URL (make sure to grant access to judges if private).
 - **Status**: **READY** (The `src/` directory contains the full React + Flask stack).
 
+### Submission-readiness features
+- Operator-created planned and unplanned scenarios
+- Event-affected arterial flow selection
+- Do-nothing versus intervention travel-time comparison
+- Closure-avoiding diversion and barricade validation
+- Attendance-aware staffing and severity adjustments
+- SQLite-backed outcomes and forecast-error reporting
+- Automated graph intervention and persistence tests
+
 ## 2. Technical Architecture & Documentation
 - **Description**: A comprehensive technical whitepaper outlining the mathematical foundations (Reverse-BFS, Dijkstra), algorithms (Continuous Flow Barricading), and system architecture (Asynchronous Polling).
 - **Format**: PDF Document or Markdown File.

@@ -1,65 +1,60 @@
-# CityFlow: Digital Twin & Diversion Simulator
+# CityFlow: Event-Impact Forecasting and Intervention Planning
 
-**Event-Driven Congestion Intelligence — Bengaluru Traffic Management System**
+**Event-Driven Congestion Intelligence for Bengaluru**
 
-CityFlow is a technically novel **Operations Research & Graph AI** system that acts as a microscopic traffic simulation engine. It models city streets as mathematical graphs to predict exactly how traffic will spill over during an event, and computes the optimal detour routes, barricade placements, and police officer deployment plans.
+CityFlow is an Operations Research and Graph AI decision-support prototype. It models Bengaluru streets as a directed graph, forecasts event severity from historical incidents, identifies arterial movements affected by an event, and evaluates diversion, barricade, and staffing interventions.
 
-## The Core Approach
+## Core Capabilities
 
-Most solutions predict *if* a road closure is needed. CityFlow answers the hardest part:
-**"Recommend optimal manpower, barricading, and diversion plans."**
+1. **OSM Road Graph** - Uses the real drivable road network and cached local subgraphs.
+2. **Topological Shockwave** - Propagates closure and spillover costs upstream by connected road distance.
+3. **Affected-Flow Diversion** - Selects up to three arterial movements whose paths cross the incident. A diversion is accepted only when it avoids closed edges and saves time.
+4. **Validated Barricades** - Verifies that a position blocks a closure entry and provides an alternate upstream exit.
+5. **Severity Forecast** - Predicts resolution time and Green/Amber/Red response level from historical incidents.
+6. **Explainable Staffing** - Estimates officers and shift duration from severity, closure status, time of day, attendance, and barricade count.
+7. **Historical Intelligence** - Provides nearby incident context, hotspot junctions, and temporal patterns.
+8. **Operator Scenarios** - Creates planned or unplanned events with attendance, duration, location, and closure details.
+9. **Post-Event Learning** - Persists actual outcomes in SQLite and reports forecast error and diversion effectiveness.
 
-1. **Dynamic OSM Graph Extraction** — Fetches the real Bengaluru road network (155k nodes, 393k edges) cached locally via OSMnx. Per-event subgraphs extracted in ~100ms using `nx.ego_graph`.
-2. **BFS Congestion Shockwave** — Propagates congestion upstream along road topology (not Euclidean radius): closure zone = Travel Time ×100, spillover = ×5.
-3. **Dijkstra Diversion** — Finds the mathematically optimal detour on the penalty-modified graph.
-4. **Police Barricade Generator** — Identifies the last upstream intersection with a viable exit — the correct placement point.
-5. **ML Severity Prediction** — GradientBoostingRegressor (R² cross-validated) predicts resolution time; RandomForestClassifier predicts Green/Amber/Red response level. Cyclical time encoding, KMeans spatial clustering, junction hotspot features.
-6. **Manpower Allocation Engine** — Computes officer count per barricade and shift duration from severity prediction + event attributes.
-7. **Historical Hotspot Intelligence** — Vectorised Haversine lookup over 8,173 historical events; pre-computed Folium heatmap.
+## Decision Evidence
 
----
+Each affected flow reports baseline travel time, do-nothing event travel time, intervention travel time, time saved, delay reduction, diversion distance, and closure avoidance. A route with no measurable benefit is rejected instead of being presented as a recommendation.
+
+CityFlow is a graph-based intervention planning prototype, not a vehicle-level microscopic simulator.
 
 ## Architecture
 
-3-tier system:
-
 | Tier | Stack | Directory |
 |------|-------|-----------|
-| Simulation Engine | Python, OSMnx, NetworkX, sklearn | `src/simulator/` |
-| REST API | Flask, Flask-CORS | `src/api/` |
+| Forecast and graph engine | Python, OSMnx, NetworkX, scikit-learn | `src/simulator/` |
+| API and operational memory | Flask, SQLite | `src/api/` |
 | Dashboard | React, Vite, Tailwind | `src/dashboard/` |
 
----
+## Run Locally
 
-## How to Run
-
-### Prerequisites
-- Python 3.10+
-- Node.js & npm
-
-### Setup
 ```bash
-# 1. Install Python dependencies
-pip install flask flask-cors osmnx networkx pandas folium scikit-learn
-
-# 2. Install React dependencies
-cd src/dashboard
-npm install
-```
-
-### Launch (1-click)
-```bash
-# From the src/ directory
+pip install -r src/requirements.txt
+cd src/dashboard && npm install
+cd ..
 python run_all.py
 ```
 
-Dashboard: `http://localhost:5173` | API: `http://localhost:5000`
+Dashboard: `http://localhost:3000` | API: `http://localhost:8000`
 
-Click any event in the left panel to run the Digital Twin simulation.
+## API Additions
 
----
+- `POST /api/scenarios` creates an operator event scenario.
+- `POST /api/simulate/<event_id>` evaluates affected traffic flows asynchronously.
+- `POST /api/feedback` records a post-event outcome.
+- `GET /api/feedback/summary` reports learning metrics.
 
-## Dataset
-Place `2.csv` in the `dataset/` directory at the project root.
+## Verification
 
-*Full technical documentation in `doc/architecture.md` and `doc/technical_whitepaper.md`.*
+```bash
+python -m unittest discover -s tests -v
+cd src/dashboard
+npm run lint
+npm run build
+```
+
+The historical dataset is expected at `dataset/2.csv`.

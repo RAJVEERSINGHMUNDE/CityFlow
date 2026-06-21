@@ -234,7 +234,7 @@ class SeverityPredictor:
         max_log = np.log1p(43_200)
         score   = min(10.0, round(np.log1p(resolution_min) / max_log * 10, 1))
 
-        return {
+        result = {
             'severity_score':    score,
             'resolution_minutes': int(round(resolution_min)),
             'resolution_label':  _fmt_duration(resolution_min),
@@ -243,6 +243,7 @@ class SeverityPredictor:
             'model_r2':          round(self.r2_score, 3) if self.r2_score else None,
             'model_accuracy':    round(self.clf_accuracy, 3) if self.clf_accuracy else None,
         }
+        return self._apply_scenario_context(result, event_dict)
 
     def _rule_based(self, event_dict: dict) -> dict:
         """Deterministic fallback before model is trained."""
@@ -251,7 +252,7 @@ class SeverityPredictor:
         if event_dict.get('requires_closure'):
             score = min(10, score + 2)
         level = 'Red' if score >= 7 else ('Amber' if score >= 4 else 'Green')
-        return {
+        result = {
             'severity_score':    float(score),
             'resolution_minutes': score * 60,
             'resolution_label':  _fmt_duration(score * 60),
@@ -260,6 +261,42 @@ class SeverityPredictor:
             'model_r2':          None,
             'model_accuracy':    None,
         }
+        return self._apply_scenario_context(result, event_dict)
+
+    @staticmethod
+    def _apply_scenario_context(result: dict, event_dict: dict) -> dict:
+        """Apply transparent operational modifiers unavailable in historical training."""
+        attendance = int(event_dict.get('expected_attendance') or 0)
+        closure = event_dict.get('closure_severity')
+        multiplier = 1.0
+        score_bonus = 0.0
+        factors = []
+        if attendance >= 10_000:
+            multiplier *= 1.35
+            score_bonus += 1.0
+            factors.append('large attendance (10,000+)')
+        elif attendance >= 2_000:
+            multiplier *= 1.15
+            score_bonus += 0.5
+            factors.append('medium attendance (2,000+)')
+        if closure == 'full':
+            multiplier *= 1.2
+            score_bonus += 0.5
+            factors.append('full road closure')
+
+        if factors:
+            minutes = max(5, round(result['resolution_minutes'] * multiplier))
+            score = min(10.0, round(result['severity_score'] + score_bonus, 1))
+            result.update({
+                'resolution_minutes': minutes,
+                'resolution_label': _fmt_duration(minutes),
+                'severity_score': score,
+                'response_level': 'Red' if score >= 7 else ('Amber' if score >= 4 else 'Green'),
+                'scenario_factors': factors,
+            })
+        else:
+            result['scenario_factors'] = []
+        return result
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────

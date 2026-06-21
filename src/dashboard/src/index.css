@@ -1,5 +1,20 @@
 @import "tailwindcss";
 
+.form-control {
+  width: 100%;
+  border: 1px solid rgb(51 65 85 / 0.8);
+  border-radius: 0.375rem;
+  background: rgb(15 23 42 / 0.9);
+  color: #e2e8f0;
+  padding: 0.375rem 0.5rem;
+  font-size: 0.6875rem;
+}
+
+.form-control:focus {
+  border-color: #3b82f6;
+  outline: none;
+}
+
 body {
   @apply bg-slate-950 text-slate-100 overflow-hidden;
 }

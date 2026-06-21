@@ -1,3 +1,10 @@
 .venv
 1.csv
 bengaluru_global.graphml
+__pycache__/
+*.py[cod]
+*.db
+.wrangler/
+dist/
+src/simulator/cache/
+src/api/static/maps/map_*.html

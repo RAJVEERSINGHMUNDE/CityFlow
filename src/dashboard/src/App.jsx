@@ -3,6 +3,13 @@ import { useState, useEffect, useRef } from 'react'
 const API              = ''
 const POLL_INTERVAL_MS = 2000
 const POLL_TIMEOUT_MS  = 90_000
+const MAX_POLL_ATTEMPTS = Math.ceil(POLL_TIMEOUT_MS / POLL_INTERVAL_MS)
+const INITIAL_SCENARIO = {
+  cause: 'Political Rally', latitude: '12.9716', longitude: '77.5946',
+  event_type: 'planned', start_time: '2026-06-22T10:00', expected_attendance: '5000',
+  expected_duration_hours: '4', closure_severity: 'full', requires_closure: true,
+  roads_affected: 'Major approaches near the event location',
+}
 
 // ── Utility helpers ───────────────────────────────────────────────────────────
 
@@ -99,6 +106,10 @@ export default function App() {
   const [simError,        setSimError]        = useState('')
   const [activeTab,       setActiveTab]       = useState('simulation')
   const [hotspots,        setHotspots]        = useState(null)
+  const [showScenario,    setShowScenario]    = useState(false)
+  const [scenarioForm,    setScenarioForm]    = useState(INITIAL_SCENARIO)
+  const [scenarioError,   setScenarioError]   = useState('')
+  const [feedbackStatus,  setFeedbackStatus]  = useState('')
 
   const pollRef = useRef(null)
 
@@ -106,7 +117,7 @@ export default function App() {
   useEffect(() => {
     fetch(`${API}/api/events`)
       .then(r => { if (!r.ok) throw new Error(r.status); return r.json() })
-      .then(d => setEvents(d.events ?? []))
+      .then(d => setEvents([...(d.scenarios ?? []), ...(d.events ?? [])]))
       .catch(() => setEventsError('Could not load events. Is the Flask API running?'))
   }, [])
 
@@ -121,6 +132,59 @@ export default function App() {
   // ── Polling control ───────────────────────────────────────────────────────
   const stopPolling = () => {
     if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null }
+  }
+
+  const createScenario = async (e) => {
+    e.preventDefault()
+    setScenarioError('')
+    try {
+      const response = await fetch(`${API}/api/scenarios`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...scenarioForm,
+          latitude: Number(scenarioForm.latitude),
+          longitude: Number(scenarioForm.longitude),
+          expected_attendance: Number(scenarioForm.expected_attendance),
+          expected_duration_hours: Number(scenarioForm.expected_duration_hours),
+        }),
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error ?? 'Could not create scenario')
+      setEvents(current => [data.scenario, ...current])
+      setShowScenario(false)
+      await handleEventClick(data.scenario)
+    } catch (error) {
+      setScenarioError(error.message)
+    }
+  }
+
+  const submitFeedback = async (e) => {
+    e.preventDefault()
+    const form = new FormData(e.currentTarget)
+    setFeedbackStatus('Saving outcome...')
+    try {
+      const response = await fetch(`${API}/api/feedback`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          event_id: selectedEvent.id,
+          actual_resolution_minutes: Number(form.get('resolution')),
+          predicted_resolution_minutes: severity?.resolution_minutes,
+          actual_officers: Number(form.get('officers')),
+          recommended_officers: mp?.total_officers,
+          actual_barricades: Number(form.get('barricades')),
+          recommended_barricades: mp?.num_barricades,
+          observed_severity: form.get('severity'),
+          diversion_effective: form.get('effective') === 'yes',
+          notes: form.get('notes'),
+        }),
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error ?? 'Could not save outcome')
+      setFeedbackStatus(`Saved. ${data.summary.total_outcomes} outcome(s) now inform evaluation.`)
+      e.currentTarget.reset()
+    } catch (error) {
+      setFeedbackStatus(error.message)
+    }
   }
 
   // ── Event click → fetch severity immediately, then kick simulation ────────
@@ -155,10 +219,11 @@ export default function App() {
       }
 
       const taskId   = data.task_id
-      const startedAt = Date.now()
+      let pollAttempts = 0
 
       pollRef.current = setInterval(async () => {
-        if (Date.now() - startedAt > POLL_TIMEOUT_MS) {
+        pollAttempts += 1
+        if (pollAttempts > MAX_POLL_ATTEMPTS) {
           stopPolling()
           setSimError('Simulation timed out after 90 seconds.')
           setSimLoading(false)
@@ -219,9 +284,67 @@ export default function App() {
         {/* ── LEFT: Event Feed ─────────────────────────────────────────────── */}
         <div className="w-64 shrink-0 glass-panel flex flex-col overflow-hidden">
           <div className="px-4 py-3 border-b border-slate-700/50">
-            <h2 className="font-semibold text-slate-200 text-sm">High Priority Events</h2>
-            <p className="text-[10px] text-slate-500 mt-0.5">Click to run AI simulation</p>
+            <div className="flex items-center justify-between gap-2">
+              <div>
+                <h2 className="font-semibold text-slate-200 text-sm">Event Scenarios</h2>
+                <p className="text-[10px] text-slate-500 mt-0.5">Historical and operator-created</p>
+              </div>
+              <button onClick={() => setShowScenario(value => !value)}
+                className="px-2 py-1 rounded bg-blue-500/20 text-blue-300 border border-blue-500/40 text-[10px]">
+                {showScenario ? 'Cancel' : '+ New'}
+              </button>
+            </div>
           </div>
+          {showScenario && (
+            <form onSubmit={createScenario} className="p-2 border-b border-slate-700/50 space-y-1.5 bg-slate-900/70">
+              <input required value={scenarioForm.cause} aria-label="Event cause"
+                onChange={e => setScenarioForm({...scenarioForm, cause: e.target.value})}
+                className="form-control" placeholder="Event cause" />
+              <div className="grid grid-cols-2 gap-1">
+                <input required type="number" step="any" value={scenarioForm.latitude} aria-label="Latitude"
+                  onChange={e => setScenarioForm({...scenarioForm, latitude: e.target.value})}
+                  className="form-control" placeholder="Latitude" />
+                <input required type="number" step="any" value={scenarioForm.longitude} aria-label="Longitude"
+                  onChange={e => setScenarioForm({...scenarioForm, longitude: e.target.value})}
+                  className="form-control" placeholder="Longitude" />
+              </div>
+              <input required type="datetime-local" value={scenarioForm.start_time} aria-label="Start time"
+                onChange={e => setScenarioForm({...scenarioForm, start_time: e.target.value})}
+                className="form-control" />
+              <div className="grid grid-cols-2 gap-1">
+                <select value={scenarioForm.event_type} aria-label="Event type"
+                  onChange={e => setScenarioForm({...scenarioForm, event_type: e.target.value})}
+                  className="form-control">
+                  <option value="planned">Planned</option><option value="unplanned">Unplanned</option>
+                </select>
+                <select value={scenarioForm.closure_severity} aria-label="Closure severity"
+                  onChange={e => setScenarioForm({...scenarioForm, closure_severity: e.target.value})}
+                  className="form-control">
+                  <option value="full">Full closure</option><option value="partial">Partial closure</option>
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-1">
+                <input required min="0" type="number" value={scenarioForm.expected_attendance} aria-label="Expected attendance"
+                  onChange={e => setScenarioForm({...scenarioForm, expected_attendance: e.target.value})}
+                  className="form-control" placeholder="Attendance" />
+                <input required min="0.5" step="0.5" type="number" value={scenarioForm.expected_duration_hours} aria-label="Expected duration"
+                  onChange={e => setScenarioForm({...scenarioForm, expected_duration_hours: e.target.value})}
+                  className="form-control" placeholder="Duration hrs" />
+              </div>
+              <input value={scenarioForm.roads_affected} aria-label="Roads affected"
+                onChange={e => setScenarioForm({...scenarioForm, roads_affected: e.target.value})}
+                className="form-control" placeholder="Roads affected" />
+              <label className="flex gap-2 items-center text-[10px] text-slate-400">
+                <input type="checkbox" checked={scenarioForm.requires_closure}
+                  onChange={e => setScenarioForm({...scenarioForm, requires_closure: e.target.checked})} />
+                Requires road closure
+              </label>
+              {scenarioError && <p className="text-[10px] text-red-400">{scenarioError}</p>}
+              <button className="w-full py-1.5 rounded bg-blue-600 text-white text-xs font-semibold">
+                Create and simulate
+              </button>
+            </form>
+          )}
           <div className="flex-1 overflow-y-auto p-2 space-y-1.5 custom-scrollbar">
             {eventsError ? (
               <div className="p-3 text-center text-red-400 text-xs">⚠️ {eventsError}</div>
@@ -260,6 +383,9 @@ export default function App() {
                     {ev.latitude?.toFixed(3)}, {ev.longitude?.toFixed(3)}
                   </span>
                 </div>
+                {ev.source === 'operator_scenario' && (
+                  <div className="text-[9px] text-cyan-400 mt-1">OPERATOR SCENARIO</div>
+                )}
               </div>
             ))}
           </div>
@@ -415,21 +541,21 @@ export default function App() {
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <MetricCard
-                      label="Added Delay"
-                      value={mt.delay_added_minutes > 0 ? `+${fmtNum(mt.delay_added_minutes)}` : fmtNum(mt.delay_added_minutes)}
+                      label="Time Saved"
+                      value={fmtNum(mt.total_time_saved_minutes)}
                       unit="min"
-                      color={mt.delay_added_minutes > 5 ? 'text-red-400' : 'text-amber-400'}
+                      color="text-emerald-400"
                     />
                     <MetricCard
-                      label="Diversion Dist."
-                      value={fmtNum(mt.diversion_distance_km)}
-                      unit="km"
+                      label="Delay Reduction"
+                      value={fmtNum(mt.average_delay_reduction_pct)}
+                      unit="%"
                       color="text-cyan-400"
                     />
                     <MetricCard
-                      label="Segments Closed"
-                      value={mt.closed_edges}
-                      color="text-red-400"
+                      label="Valid Diversions"
+                      value={`${mt.valid_diversions}/${mt.affected_flows}`}
+                      color="text-blue-300"
                     />
                     <MetricCard
                       label="Barricades"
@@ -437,16 +563,21 @@ export default function App() {
                       color="text-orange-400"
                     />
                   </div>
-                  <div className="bg-slate-900/50 rounded p-2">
-                    <div className="text-[9px] text-slate-500 uppercase mb-1">Route Comparison</div>
-                    <div className="flex justify-between text-[10px]">
-                      <span className="text-slate-400">Normal</span>
-                      <span className="text-slate-300">{fmtNum(mt.normal_distance_km)} km</span>
-                    </div>
-                    <div className="flex justify-between text-[10px] mt-0.5">
-                      <span className="text-slate-400">Diversion</span>
-                      <span className="text-cyan-400">{fmtNum(mt.diversion_distance_km)} km</span>
-                    </div>
+                  <div className="space-y-1">
+                    {(simulation.flow_analysis ?? []).map(flow => (
+                      <div key={flow.flow_id} className="bg-slate-900/50 rounded p-2">
+                        <div className="flex justify-between text-[10px] font-semibold">
+                          <span className="text-slate-300">{flow.flow_id.toUpperCase()}</span>
+                          <span className={flow.valid_intervention ? 'text-emerald-400' : 'text-red-400'}>
+                            {flow.valid_intervention ? `SAVE ${flow.time_saved_minutes} MIN` : 'NO SAFE BENEFIT'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-[9px] text-slate-500 mt-1">
+                          <span>Do nothing: {fmtNum(flow.without_intervention_minutes)} min</span>
+                          <span>Diverted: {fmtNum(flow.with_intervention_minutes)} min</span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
@@ -497,6 +628,34 @@ export default function App() {
                   )}
                 </div>
               </div>
+            )}
+
+            {simulation && selectedEvent && (
+              <form onSubmit={submitFeedback} className="rounded-lg border border-cyan-700/40 overflow-hidden">
+                <div className="px-3 py-2 bg-cyan-950/30 border-b border-cyan-800/30">
+                  <span className="text-[10px] font-bold text-cyan-300 uppercase tracking-wider">Post-Event Learning</span>
+                </div>
+                <div className="p-3 space-y-1.5">
+                  <p className="text-[10px] text-slate-500">Record actual operations to measure forecast error.</p>
+                  <div className="grid grid-cols-2 gap-1">
+                    <input required name="resolution" min="1" type="number" className="form-control" placeholder="Actual minutes" />
+                    <select required name="severity" className="form-control" defaultValue="Amber">
+                      <option>Green</option><option>Amber</option><option>Red</option>
+                    </select>
+                    <input required name="officers" min="0" type="number" className="form-control" placeholder="Officers used" />
+                    <input required name="barricades" min="0" type="number" className="form-control" placeholder="Barricades used" />
+                  </div>
+                  <select required name="effective" className="form-control" defaultValue="yes">
+                    <option value="yes">Diversion effective</option>
+                    <option value="no">Diversion ineffective</option>
+                  </select>
+                  <input name="notes" className="form-control" placeholder="Operational notes" />
+                  <button className="w-full py-1.5 rounded bg-cyan-700/50 hover:bg-cyan-700/70 text-cyan-100 text-xs">
+                    Save actual outcome
+                  </button>
+                  {feedbackStatus && <p className="text-[10px] text-cyan-300">{feedbackStatus}</p>}
+                </div>
+              </form>
             )}
 
           </div>

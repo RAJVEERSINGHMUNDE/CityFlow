@@ -1,7 +1,9 @@
 # CityFlow Digital Twin: Comprehensive Technical Whitepaper
 
 ## 1. Executive Summary
-CityFlow is an advanced, AI-driven Digital Twin designed to simulate, analyze, and mitigate event-driven urban traffic congestion. Initially prototyped as a synchronous Jupyter Notebook script, the system has been entirely re-architected into a scalable, asynchronous, production-ready web application consisting of a React-based frontend, a Flask-based API backend, and an intelligent Graph Engine utilizing Python's `networkx` and `osmnx` libraries.
+CityFlow is an event-impact forecasting and graph-based intervention planning prototype for event-driven urban traffic congestion. It consists of a React frontend, a Flask API, SQLite operational memory, and a graph engine using Python's `networkx` and `osmnx` libraries.
+
+The system does not claim vehicle-level microscopic simulation. Its evidence comes from road-network topology, historical event forecasting, affected arterial-flow analysis, and explicit baseline-versus-intervention comparisons.
 
 This whitepaper serves as the definitive technical document detailing every architectural decision, mathematical formula, algorithmic implementation, and line of code that constitutes the CityFlow system.
 
