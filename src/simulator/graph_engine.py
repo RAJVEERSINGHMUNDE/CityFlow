@@ -4,6 +4,30 @@ import os
 import threading
 
 # ── OSMnx settings ────────────────────────────────────────────────────────────
+import ast
+
+def mask_edges_from_linestring(G, route_path_json: str) -> set:
+    """
+    Given a JSON linestring from route_path column, snap each coordinate
+    pair to the nearest OSM edge and return the set of (u,v) edges to close.
+    Falls back to empty set if route_path is empty/invalid.
+    """
+    try:
+        if not route_path_json or not isinstance(route_path_json, str):
+            return set()
+        coords = ast.literal_eval(route_path_json)
+        if not coords or coords == []:
+            return set()
+        closed = set()
+        for lat, lon in coords[::3]:  # sample every 3rd point — dense enough
+            u = ox.distance.nearest_nodes(G, X=lon, Y=lat)
+            # Mark all edges incident to this node as closure candidates
+            for _, v in G.out_edges(u):
+                closed.add((u, v))
+        return closed
+    except Exception:
+        return set()
+
 ox.settings.timeout = 300          # 5-minute timeout per HTTP request
 ox.settings.max_query_area_size = 50_000_000_000  # allow larger queries without subdivision
 

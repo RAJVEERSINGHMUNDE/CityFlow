@@ -185,6 +185,12 @@ def feedback_summary():
     }
 
 
+def get_all_feedback() -> list[dict]:
+    with _connect() as db:
+        rows = db.execute('SELECT * FROM feedback').fetchall()
+    return [dict(row) for row in rows]
+
+
 def _optional_float(value):
     return float(value) if value not in (None, '') else None
 

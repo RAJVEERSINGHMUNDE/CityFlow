@@ -1,0 +1,356 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans);color:var(--color-text-primary);padding:1rem 0}
+h2{font-size:18px;font-weight:500;margin-bottom:1.25rem}
+.pill{display:inline-block;font-size:11px;font-weight:500;padding:2px 8px;border-radius:4px}
+.pill-green{background:var(--color-background-success);color:var(--color-text-success)}
+.pill-amber{background:var(--color-background-warning);color:var(--color-text-warning)}
+.pill-red{background:var(--color-background-danger);color:var(--color-text-danger)}
+.pill-blue{background:var(--color-background-info);color:var(--color-text-info)}
+.card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1rem 1.25rem;margin-bottom:1rem}
+.card-header{display:flex;align-items:center;gap:10px;margin-bottom:.75rem;cursor:pointer;user-select:none}
+.card-title{font-size:15px;font-weight:500;flex:1}
+.card-body{font-size:13px;line-height:1.65;color:var(--color-text-secondary)}
+.verdict{border-left:3px solid;padding:.5rem .75rem;border-radius:0 6px 6px 0;margin:.6rem 0;font-size:13px}
+.verdict-green{border-color:#22c55e;background:var(--color-background-success)}
+.verdict-amber{border-color:#f59e0b;background:var(--color-background-warning)}
+.verdict-red{border-color:#ef4444;background:var(--color-background-danger)}
+.verdict-blue{border-color:#3b82f6;background:var(--color-background-info)}
+.file-tag{display:inline-block;font-family:var(--font-mono);font-size:11px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-secondary);border-radius:4px;padding:1px 6px;margin:2px 2px}
+.stat-row{display:flex;gap:12px;margin:.5rem 0;flex-wrap:wrap}
+.stat{background:var(--color-background-secondary);border-radius:8px;padding:.4rem .75rem;font-size:12px}
+.stat-n{font-weight:500;font-size:15px;display:block}
+.expand-icon{font-size:12px;color:var(--color-text-tertiary);transition:transform .2s}
+.expanded .expand-icon{transform:rotate(90deg)}
+.collapsible{overflow:hidden;max-height:0;transition:max-height .3s ease}
+.collapsible.open{max-height:2000px}
+.divider{height:0.5px;background:var(--color-border-tertiary);margin:.75rem 0}
+.code{font-family:var(--font-mono);font-size:11px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:6px;padding:.6rem .75rem;line-height:1.6;white-space:pre-wrap;margin:.5rem 0}
+</style>
+</head>
+<body>
+
+<h2>Integration blueprint — theory meets your actual data</h2>
+
+<!-- Pillar 1 -->
+<div class="card" id="p1">
+  <div class="card-header" onclick="toggle('p1')">
+    <span class="pill pill-amber">Pillar 1</span>
+    <span class="card-title">Multilingual NLP + Hawkes Process</span>
+    <span class="expand-icon">▶</span>
+  </div>
+  <div class="card-body">
+    <div class="stat-row">
+      <div class="stat"><span class="stat-n">870</span>Kannada descriptions</div>
+      <div class="stat"><span class="stat-n">5 943</span>English descriptions</div>
+      <div class="stat"><span class="stat-n">385</span>"no problem" labels</div>
+      <div class="stat"><span class="stat-n">840</span>"slow" labels</div>
+    </div>
+    <div class="verdict verdict-red"><strong>Hawkes Process: do not implement.</strong> A Hawkes process requires dense, precisely timestamped event streams. Your dataset spans 5 months with only 8 173 events (~55/day city-wide). The inter-arrival times are too coarse and sparse for the self-excitation parameters α/β to converge meaningfully. The math is right but the data volume is wrong.</div>
+    <div class="verdict verdict-green"><strong>NLP weak-label classifier: build this.</strong> You have 840 "slow", 385 "no problem", 448 "moving", 24 "closed" labels inside descriptions. That is enough for a lightweight binary classifier: <strong>ImpactSignal ∈ {Contained, Disrupted}</strong>. Use <span class="file-tag">sentence-transformers/LaBSE</span> (multilingual, handles Kannada, runs on CPU, ~90 MB) rather than IndicBERT. Fine-tune a logistic head on your labelled descriptions.</div>
+  </div>
+  <div class="collapsible" id="p1-body">
+    <div class="card-body" style="padding-top:.5rem">
+      <div class="divider"></div>
+      <strong style="font-size:13px">What to actually build</strong>
+      <div class="code">
+# src/simulator/nlp_impact.py  (NEW FILE)
+# ~80 lines, no GPU needed
+
+from sentence_transformers import SentenceTransformer
+from sklearn.linear_model import LogisticRegression
+import numpy as np, re, joblib, os
+
+WEAK_LABELS = {
+    'no problem': 0, 'normal': 0, 'moving': 0,
+    'slow': 1, 'closed': 1, 'blocked': 1, 'gridlock': 1,
+    'ನಿಧಾನ': 1,   # "slow" in Kannada
+    'ಸಮಸ್ಯ': 1,   # "problem"
+    'ನಿಂತಿದೆ': 1, # "standing/stopped"
+}
+
+class NLPImpactClassifier:
+    MODEL_ID = "sentence-transformers/LaBSE"
+
+    def fit(self, df):
+        desc = df['description'].dropna()
+        # Weak labelling from keyword presence
+        labels, texts = [], []
+        for text in desc:
+            for kw, lbl in WEAK_LABELS.items():
+                if kw in text.lower():
+                    texts.append(text); labels.append(lbl); break
+        self._encoder = SentenceTransformer(self.MODEL_ID)
+        X = self._encoder.encode(texts, batch_size=64, show_progress_bar=True)
+        self._clf = LogisticRegression(max_iter=500).fit(X, labels)
+        joblib.dump((self._encoder, self._clf), 'nlp_model.pkl')
+
+    def predict_impact(self, text: str) -> dict:
+        X = self._encoder.encode([text])
+        prob = self._clf.predict_proba(X)[0]
+        return {'disrupted_prob': round(float(prob[1]), 3),
+                'label': 'Disrupted' if prob[1] > 0.5 else 'Contained'}
+      </div>
+      <p style="margin-top:.5rem">Wire into <span class="file-tag">severity_model.py</span>: after the GBM predicts resolution time, call <span class="file-tag">nlp_impact.predict_impact(event_dict.get('description',''))</span> and add <span class="file-tag">nlp_disruption_prob</span> to the severity result dict. Expose it as a new field in <span class="file-tag">GET /api/severity/&lt;id&gt;</span>. This directly upgrades the severity score with ground-truth radio signal rather than purely structural features.</p>
+      <div class="verdict verdict-amber"><strong>Corridor-weight modifier:</strong> replace the Hawkes Process cascade idea with a simpler, honest version. After NLP classification, multiply the <span class="file-tag">disrupted_prob</span> by a corridor weight derived from historical closure rates per corridor (already computed in hotspot_analyzer). This is the ΔC formula — corridor-conditioned capacity drop — without requiring the Hawkes temporal density you don't have data for.</div>
+    </div>
+  </div>
+</div>
+
+<!-- Pillar 2 -->
+<div class="card" id="p2">
+  <div class="card-header" onclick="toggle('p2')">
+    <span class="pill pill-amber">Pillar 2</span>
+    <span class="card-title">Geometric Footprints — Polygon-Constrained Routing</span>
+    <span class="expand-icon">▶</span>
+  </div>
+  <div class="card-body">
+    <div class="stat-row">
+      <div class="stat"><span class="stat-n">86</span>rows with real linestring coordinates</div>
+      <div class="stat"><span class="stat-n">8 087</span>rows with empty route_path</div>
+    </div>
+    <div class="verdict verdict-red"><strong>Full polygon masking: do not implement.</strong> Only 86 of 8 173 rows (1%) have non-empty <span class="file-tag">route_path</span> coordinates. The area-intersection formula <em>C_effective = C_base × (1 − intersection/area)</em> is mathematically sound but will fire on fewer than 1% of events. Building a full geospatial masking pipeline for 86 rows is a high cost / low return engineering choice.</div>
+    <div class="verdict verdict-green"><strong>Edge-snapping for linestrings: build this.</strong> For the 86 events that do have coordinates, use the linestring to snap directly to OSM graph edges — this replaces the current single-point epicenter with a multi-node closure zone. This is concrete, correct, and takes ~40 lines added to <span class="file-tag">graph_engine.py</span>.</div>
+  </div>
+  <div class="collapsible" id="p2-body">
+    <div class="card-body" style="padding-top:.5rem">
+      <div class="divider"></div>
+      <strong style="font-size:13px">What to actually build — linestring edge masking</strong>
+      <div class="code">
+# Add to src/simulator/graph_engine.py
+
+import ast, osmnx as ox
+
+def mask_edges_from_linestring(G, route_path_json: str) -> set:
+    """
+    Given a JSON linestring from route_path column, snap each coordinate
+    pair to the nearest OSM edge and return the set of (u,v) edges to close.
+    Falls back to empty set if route_path is empty/invalid.
+    """
+    try:
+        coords = ast.literal_eval(route_path_json)
+        if not coords or coords == []:
+            return set()
+        closed = set()
+        for lat, lon in coords[::3]:  # sample every 3rd point — dense enough
+            u = ox.distance.nearest_nodes(G, X=lon, Y=lat)
+            # Mark all edges incident to this node as closure candidates
+            for _, v in G.out_edges(u):
+                closed.add((u, v))
+        return closed
+    except Exception:
+        return set()
+      </div>
+      <p style="margin-top:.5rem">In <span class="file-tag">app.py</span>, when an event has a non-empty <span class="file-tag">route_path</span>, pass the result of <span class="file-tag">mask_edges_from_linestring()</span> as the initial <span class="file-tag">closed_edges</span> seed to <span class="file-tag">simulate_congestion_shockwave()</span> instead of computing the closure radius from a single point. For the 99% of events without linestrings, behaviour is unchanged.</p>
+      <div class="verdict verdict-blue"><strong>Demo value:</strong> This directly fixes the eval log issue where "barricades fractured the graph." A linestring closure is topologically consistent — the edges being closed are exactly the road the incident lies on, not a Euclidean circle that might bleed into a flyover above it.</div>
+    </div>
+  </div>
+</div>
+
+<!-- Pillar 3 -->
+<div class="card" id="p3">
+  <div class="card-header" onclick="toggle('p3')">
+    <span class="pill pill-green">Pillar 3</span>
+    <span class="card-title">Survival Analysis — Cox Proportional Hazards</span>
+    <span class="expand-icon">▶</span>
+  </div>
+  <div class="card-body">
+    <div class="stat-row">
+      <div class="stat"><span class="stat-n">1 772</span>rows with resolution_min + veh_type</div>
+      <div class="stat"><span class="stat-n">bmtc_bus 48 min</span>median vs private_car 30 min</div>
+      <div class="stat"><span class="stat-n">15 corridors</span>covariate</div>
+    </div>
+    <div class="verdict verdict-green"><strong>Build this — it is the most implementable of the four pillars.</strong> You have 1 772 complete survival records. The vehicle-type median gap (bmtc_bus 48 min vs private_car 30 min) already validates the signal. Cox PH takes ~10 lines with <span class="file-tag">lifelines</span> and replaces the current GBM point-estimate with a probabilistic survival curve — a concrete upgrade with real mathematical novelty for the presentation.</div>
+  </div>
+  <div class="collapsible" id="p3-body">
+    <div class="card-body" style="padding-top:.5rem">
+      <div class="divider"></div>
+      <strong style="font-size:13px">What to actually build</strong>
+      <div class="code">
+# src/simulator/survival_model.py  (NEW FILE ~70 lines)
+
+import pandas as pd, numpy as np
+from lifelines import CoxPHFitter
+import warnings; warnings.filterwarnings('ignore')
+
+class ClearanceForecaster:
+    """
+    Cox Proportional Hazards model for incident clearance time.
+    Outputs a survival curve S(t|X) and a confidence interval
+    for the 80th percentile clearance time.
+    """
+    def fit(self, df: pd.DataFrame):
+        df = df.copy()
+        df['start_dt']  = pd.to_datetime(df['start_datetime'], utc=True, errors='coerce')
+        df['closed_dt'] = pd.to_datetime(df['closed_datetime'], utc=True, errors='coerce')
+        df['T'] = (df['closed_dt']-df['start_dt']).dt.total_seconds()/60
+        df['E'] = 1  # all observed (no censoring in this dataset)
+
+        # Keep usable rows
+        df = df.dropna(subset=['T','veh_type','corridor'])
+        df = df[(df['T'] > 2) & (df['T'] < 43200)]
+
+        # Dummy-encode categoricals
+        df['is_bmtc']    = (df['veh_type']=='bmtc_bus').astype(int)
+        df['is_heavy']   = (df['veh_type']=='heavy_vehicle').astype(int)
+        df['is_hcorridor'] = df['corridor'].apply(
+            lambda c: 0 if c=='Non-corridor' else 1)
+        df['requires_closure'] = df['requires_road_closure'].fillna(False).astype(int)
+
+        features = ['T','E','is_bmtc','is_heavy','is_hcorridor','requires_closure']
+        self._cph = CoxPHFitter(penalizer=0.1)
+        self._cph.fit(df[features], duration_col='T', event_col='E')
+        self._is_fitted = True
+        print(self._cph.summary[['coef','exp(coef)','p']].to_string())
+
+    def predict_clearance(self, event_dict: dict) -> dict:
+        row = pd.DataFrame([{
+            'is_bmtc':         int(event_dict.get('veh_type','')=='bmtc_bus'),
+            'is_heavy':        int(event_dict.get('veh_type','')=='heavy_vehicle'),
+            'is_hcorridor':    int(event_dict.get('corridor','Non-corridor')!='Non-corridor'),
+            'requires_closure':int(bool(event_dict.get('requires_closure',False))),
+        }])
+        sf = self._cph.predict_survival_function(row)
+        t_vals = sf.index.values
+        # Find t where S(t) first drops below 0.5 (median) and 0.2 (80th pct)
+        s_vals = sf.iloc[:,0].values
+        t50  = float(t_vals[np.searchsorted(-s_vals, -0.5, side='right')])
+        t80  = float(t_vals[np.searchsorted(-s_vals, -0.2, side='right')])
+        return {
+            'median_clearance_min': round(t50, 0),
+            't80_clearance_min':    round(t80, 0),
+            'survival_at_30min':    round(float(sf.iloc[:,0][sf.index<=30].iloc[-1]), 3),
+            'survival_at_60min':    round(float(sf.iloc[:,0][sf.index<=60].iloc[-1]), 3),
+        }
+      </div>
+      <p style="margin-top:.5rem">Train at startup alongside the severity model in <span class="file-tag">app.py</span>. Merge the output into the <span class="file-tag">/api/severity/&lt;id&gt;</span> response under a new key <span class="file-tag">clearance_forecast</span>. The dashboard can then show: <em>"80% probability this clears within 47 min — diversion active for next 45 min."</em></p>
+      <div class="verdict verdict-blue"><strong>This also fixes the time-of-day routing invariance bug you found.</strong> The current system applies a uniform 1.5× multiplier to all edges, which doesn't change Dijkstra's path choice. Replace the point-estimate resolution time in <span class="file-tag">manpower.py</span> with the Cox t80 output — the shift_duration_hours will now vary correctly by vehicle type and corridor, making the manpower allocation data-driven rather than rule-based.</div>
+    </div>
+  </div>
+</div>
+
+<!-- Pillar 4 -->
+<div class="card" id="p4">
+  <div class="card-header" onclick="toggle('p4')">
+    <span class="pill pill-red">Pillar 4</span>
+    <span class="card-title">Contrastive Learning — Weakly Supervised Embeddings</span>
+    <span class="expand-icon">▶</span>
+  </div>
+  <div class="card-body">
+    <div class="stat-row">
+      <div class="stat"><span class="stat-n">~1 200</span>labellable description pairs (rough)</div>
+      <div class="stat"><span class="stat-n">Triplet loss</span>needs 3 × N samples</div>
+    </div>
+    <div class="verdict verdict-red"><strong>Full contrastive learning with triplet loss: do not implement.</strong> Triplet loss requires careful online negative mining and typically needs tens of thousands of labelled pairs to converge. With ~1 200 labellable descriptions and no structured outcome ground truth beyond the description text itself, the anchor/positive/negative construction is circular — you are labelling descriptions with descriptions. The math is impressive but the data doesn't support it.</div>
+    <div class="verdict verdict-amber"><strong>What to build instead — outcome-conditioned feedback.</strong> The <span class="file-tag">/api/feedback</span> endpoint already exists in your codebase with <span class="file-tag">observed_severity</span>, <span class="file-tag">actual_officers</span>, <span class="file-tag">diversion_effective</span> fields. Feed those back into the NLP classifier (Pillar 1) as confirmed labels. After 50–100 real feedback entries, the LaBSE logistic head can be re-fitted in under a second. This is the "weakly supervised learning loop" materialised as an actual running system — simpler than triplet loss, but genuinely post-event learning.</div>
+  </div>
+  <div class="collapsible" id="p4-body">
+    <div class="card-body" style="padding-top:.5rem">
+      <div class="divider"></div>
+      <strong style="font-size:13px">Honest architecture for the learning loop</strong>
+      <div class="code">
+# Add to src/api/storage.py — new function
+def get_confirmed_labels() -> list[dict]:
+    """Return feedback rows that can serve as confirmed NLP training labels."""
+    con = _connect()
+    rows = con.execute("""
+        SELECT f.event_id, f.observed_severity, f.diversion_effective,
+               e.description
+        FROM   feedback f
+        JOIN   events   e ON f.event_id = e.id
+        WHERE  e.description IS NOT NULL
+    """).fetchall()
+    con.close()
+    return [dict(r) for r in rows]
+
+# In nlp_impact.py — add incremental re-fit
+def retrain_from_feedback(feedback_rows: list[dict]):
+    """
+    Re-fit the logistic head using confirmed operator labels.
+    Runs in <1s; called from POST /api/feedback after N=50 new entries.
+    """
+    texts  = [r['description'] for r in feedback_rows]
+    labels = [0 if r['observed_severity']=='Green' else 1 for r in feedback_rows]
+    X = _encoder.encode(texts, batch_size=64)
+    _clf.fit(X, labels)  # warm-start refit
+      </div>
+      <p style="margin-top:.5rem">This closes the "post-event learning" gap from the problem statement with something that actually runs, rather than a theoretical triplet loss training pipeline that would take days and GPU time.</p>
+    </div>
+  </div>
+</div>
+
+<!-- Summary table -->
+<div class="card" style="margin-top:.5rem">
+  <div class="card-body">
+    <strong style="font-size:14px;display:block;margin-bottom:.75rem">Build priority for the repo</strong>
+    <table style="width:100%;font-size:12px;border-collapse:collapse">
+      <thead>
+        <tr style="border-bottom:0.5px solid var(--color-border-tertiary)">
+          <th style="text-align:left;padding:6px 4px;font-weight:500">Component</th>
+          <th style="text-align:left;padding:6px 4px;font-weight:500">New file</th>
+          <th style="text-align:left;padding:6px 4px;font-weight:500">Effort</th>
+          <th style="text-align:left;padding:6px 4px;font-weight:500">Verdict</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="border-bottom:0.5px solid var(--color-border-tertiary)">
+          <td style="padding:6px 4px">Cox PH clearance forecaster</td>
+          <td style="padding:6px 4px"><span class="file-tag">survival_model.py</span></td>
+          <td style="padding:6px 4px">~70 lines</td>
+          <td style="padding:6px 4px"><span class="pill pill-green">Build first</span></td>
+        </tr>
+        <tr style="border-bottom:0.5px solid var(--color-border-tertiary)">
+          <td style="padding:6px 4px">LaBSE NLP weak-label classifier</td>
+          <td style="padding:6px 4px"><span class="file-tag">nlp_impact.py</span></td>
+          <td style="padding:6px 4px">~80 lines</td>
+          <td style="padding:6px 4px"><span class="pill pill-green">Build second</span></td>
+        </tr>
+        <tr style="border-bottom:0.5px solid var(--color-border-tertiary)">
+          <td style="padding:6px 4px">Linestring edge masking</td>
+          <td style="padding:6px 4px">+40 lines to <span class="file-tag">graph_engine.py</span></td>
+          <td style="padding:6px 4px">~40 lines</td>
+          <td style="padding:6px 4px"><span class="pill pill-green">Build third</span></td>
+        </tr>
+        <tr style="border-bottom:0.5px solid var(--color-border-tertiary)">
+          <td style="padding:6px 4px">Feedback → NLP retrain loop</td>
+          <td style="padding:6px 4px">+20 lines to <span class="file-tag">storage.py</span></td>
+          <td style="padding:6px 4px">~20 lines</td>
+          <td style="padding:6px 4px"><span class="pill pill-blue">Wire after NLP</span></td>
+        </tr>
+        <tr style="border-bottom:0.5px solid var(--color-border-tertiary)">
+          <td style="padding:6px 4px">Cox t80 → shift_duration fix</td>
+          <td style="padding:6px 4px">3 lines change in <span class="file-tag">manpower.py</span></td>
+          <td style="padding:6px 4px">3 lines</td>
+          <td style="padding:6px 4px"><span class="pill pill-blue">Quick win</span></td>
+        </tr>
+        <tr style="border-bottom:0.5px solid var(--color-border-tertiary)">
+          <td style="padding:6px 4px">Hawkes Process cascade model</td>
+          <td style="padding:6px 4px">—</td>
+          <td style="padding:6px 4px">High</td>
+          <td style="padding:6px 4px"><span class="pill pill-red">Skip — data too sparse</span></td>
+        </tr>
+        <tr>
+          <td style="padding:6px 4px">Triplet loss contrastive embeddings</td>
+          <td style="padding:6px 4px">—</td>
+          <td style="padding:6px 4px">Very high</td>
+          <td style="padding:6px 4px"><span class="pill pill-red">Skip — labels insufficient</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+function toggle(id){
+  const card=document.getElementById(id);
+  const body=document.getElementById(id+'-body');
+  card.classList.toggle('expanded');
+  body.classList.toggle('open');
+}
+</script>
+</body>
+</html>

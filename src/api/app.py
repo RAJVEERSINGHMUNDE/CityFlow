@@ -9,15 +9,17 @@ from flask_cors import CORS
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../simulator')))
 
 from data_pipeline    import DataPipeline
-from graph_engine     import GraphEngine, graph_ready_event
+from graph_engine     import GraphEngine, graph_ready_event, mask_edges_from_linestring
 from simulator        import CongestionSimulator
 from severity_model   import get_predictor, model_ready_event
+from survival_model   import get_forecaster
+from nlp_impact       import get_nlp_classifier
 from hotspot_analyzer import init_analyzer, get_analyzer
 from manpower         import allocate_manpower
 from storage import (
     create_feedback, create_scenario, feedback_summary, get_scenario,
     init_db, list_scenarios, create_task, update_task_success,
-    update_task_error, get_task, get_task_map
+    update_task_error, get_task, get_task_map, get_all_feedback
 )
 
 app  = Flask(__name__)
@@ -78,8 +80,12 @@ def _train_severity_model_background():
     try:
         predictor = get_predictor()
         predictor.train(pipeline.df)
+        forecaster = get_forecaster()
+        forecaster.fit(pipeline.df)
+        nlp_clf = get_nlp_classifier()
+        nlp_clf.fit(pipeline.df)
         model_ready_event.set()
-        print("[Startup] Severity model ready.")
+        print("[Startup] Severity, Survival & NLP models ready.")
     except Exception as e:
         import traceback
         print(f"[Startup] WARNING: ML training failed: {e}")
@@ -165,6 +171,28 @@ def submit_feedback():
         outcome = create_feedback(payload)
     except (TypeError, ValueError):
         return jsonify({'error': 'Actual outcome values must be non-negative numbers.'}), 400
+
+    # ── Post-Event NLP Retraining Trigger ─────────────────────────────────────
+    feedback_list = get_all_feedback()
+    if len(feedback_list) > 0 and len(feedback_list) % 10 == 0:
+        # Every 10 feedback entries, trigger retraining asynchronously
+        def _retrain():
+            # Join with event descriptions from dataframe
+            df = pipeline.df
+            retrain_data = []
+            for f in feedback_list:
+                ev_id = f['event_id']
+                # Try to find in dataframe
+                matches = df[df['id'] == ev_id] if 'id' in df.columns else []
+                desc = matches.iloc[0]['description'] if len(matches) > 0 else None
+                if desc:
+                    f['description'] = desc
+                    retrain_data.append(f)
+            if retrain_data:
+                get_nlp_classifier().retrain_from_feedback(retrain_data)
+                
+        threading.Thread(target=_retrain, daemon=True).start()
+
     return jsonify({'outcome': outcome, 'summary': feedback_summary()}), 201
 
 
@@ -185,6 +213,14 @@ def get_severity(event_id):
 
     predictor = get_predictor()
     severity  = predictor.predict(event)
+
+    forecaster = get_forecaster()
+    survival = forecaster.predict_clearance(event)
+    severity['clearance_forecast'] = survival
+
+    nlp_clf = get_nlp_classifier()
+    nlp_impact = nlp_clf.predict_impact(event.get('description', ''))
+    severity['nlp_disruption_prob'] = nlp_impact['disrupted_prob']
 
     # Attach nearby historical context from hotspot analyzer
     analyzer = get_analyzer()
@@ -260,8 +296,19 @@ def _run_simulation_task(task_id, event_id, lat, lon, time_str, event_dict):
             G = ox.add_edge_travel_times(G)
             engine.G = G
 
+        # ── Setup and NLP Capacity Modification ───────────────────────────────
         seed = hash(event_id) & 0x7FFF_FFFF
         sim  = CongestionSimulator(G, lat, lon, start_datetime=time_str, seed=seed)
+
+        nlp_clf = get_nlp_classifier()
+        nlp_impact = nlp_clf.predict_impact(event_dict.get('description', ''))
+        
+        # Base capacity factor derived from NLP disrupted prob and historical corridor stats.
+        # If disruption is high, capacity drops more. We can scale it inversely.
+        capacity_factor = 1.0 - (nlp_impact['disrupted_prob'] * 0.5) # Max 50% extra reduction
+
+        # ── Pre-closed edges from linestring ──────────────────────────────────
+        pre_closed_edges = mask_edges_from_linestring(G, event_dict.get('route_path'))
 
         affected_flows = sim.find_affected_flows(max_flows=3)
         if not affected_flows:
@@ -269,7 +316,8 @@ def _run_simulation_task(task_id, event_id, lat, lon, time_str, event_dict):
             return
 
         closed, spillover = sim.simulate_congestion_shockwave(
-            closure_radius=50, spillover_radius=300
+            closure_radius=50, spillover_radius=300, 
+            capacity_factor=capacity_factor, pre_closed_edges=pre_closed_edges
         )
         flow_results = sim.evaluate_interventions(affected_flows, closed)
         barricades = sim.recommend_barricades(closed)
@@ -277,9 +325,12 @@ def _run_simulation_task(task_id, event_id, lat, lon, time_str, event_dict):
         valid_barricades = [item['node_id'] for item in barricade_validation if item['valid']]
 
         # ── Enriched metrics ──────────────────────────────────────────────────
-        # ── Severity (use cached prediction if available) ─────────────────────
+        # ── Severity & Clearance (use cached prediction if available) ─────────
         predictor = get_predictor()
         severity  = predictor.predict(event_dict)
+        
+        forecaster = get_forecaster()
+        survival = forecaster.predict_clearance(event_dict)
 
         # ── Manpower plan ─────────────────────────────────────────────────────
         manpower_plan = allocate_manpower(
@@ -288,6 +339,7 @@ def _run_simulation_task(task_id, event_id, lat, lon, time_str, event_dict):
             event_dict        = event_dict,
             graph             = G,
             time_of_day_label = sim.time_of_day_label,
+            cox_t80           = survival['t80_clearance_min'],
         )
 
         map_html = sim.visualize_flows(flow_results, valid_barricades)

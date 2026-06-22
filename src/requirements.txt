@@ -18,3 +18,9 @@ scikit-learn>=1.3.0
 
 # ── Visualisation ─────────────────────────────────────────────────────────────
 folium>=0.14.0
+
+# ── Advanced Mathematics & Survival Analysis ────────────────────────────────
+lifelines>=0.28.0          # For Cox Proportional Hazards (Time-to-Clearance)
+
+# ── Multilingual NLP (Kannada/English Text Parsing) ─────────────────────────
+sentence-transformers>=2.7 # For LaBSE (Text Parsing)

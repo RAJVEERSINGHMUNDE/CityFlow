@@ -142,7 +142,7 @@ class CongestionSimulator:
         }
         return capacities.get(highway_type, (500, 250))
 
-    def simulate_congestion_shockwave(self, closure_radius=50, spillover_radius=1000):
+    def simulate_congestion_shockwave(self, closure_radius=50, spillover_radius=1000, capacity_factor=1.0, pre_closed_edges=None):
         """Propagate event impact upstream using topological capacity decay and BPR function."""
         print('Simulating BPR topological congestion shockwave...')
         self._apply_time_of_day_weights()
@@ -153,9 +153,16 @@ class CongestionSimulator:
         for u, v, k, data in self.G.edges(keys=True, data=True):
             hw_type = self._highway_value(data)
             cap, vol = self._get_base_capacity_and_volume(hw_type)
-            data['capacity'] = cap
+            data['capacity'] = cap * capacity_factor
             data['volume'] = vol * self.time_multiplier
             data['t0'] = float(data.get('travel_time', 10.0))
+            
+        if pre_closed_edges:
+            for u, v in pre_closed_edges:
+                if self.G.has_edge(u, v):
+                    for k in self.G[u][v]:
+                        self.G[u][v][k]['capacity'] *= 0.05
+                        closed_edges.add((u, v))
         
         # 2. Capacity Decay (Queue Spillback)
         queue = deque([(self.epicenter_node, 0.0)])
@@ -203,8 +210,21 @@ class CongestionSimulator:
                 safe_graph.remove_edges_from((u, v, key) for key in list(safe_graph[u][v]))
         return safe_graph
 
-    def calculate_diversion(self, origin, destination, closed_edges=None):
-        graph = self._remove_edges(self.G, closed_edges or set())
+    def calculate_diversion(self, origin, destination, closed_edges=None, police_deployed=False):
+        graph = self.G.copy()
+        edges_to_close = closed_edges or set()
+        
+        # Implement Barricade Compliance Factor
+        # If police are not deployed, compliance is 40% -> edge remains but travel time is penalized.
+        # If police are deployed, compliance is 95% -> edge is effectively removed.
+        for u, v in edges_to_close:
+            if graph.has_edge(u, v):
+                if police_deployed:
+                    graph.remove_edges_from((u, v, key) for key in list(graph[u][v]))
+                else:
+                    for key in list(graph[u][v]):
+                        graph[u][v][key]['travel_time'] *= 2.5 # 1/0.4 non-compliance penalty
+
         try:
             return nx.shortest_path(graph, origin, destination, weight='travel_time')
         except (nx.NetworkXNoPath, nx.NodeNotFound):

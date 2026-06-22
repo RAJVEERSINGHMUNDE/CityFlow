@@ -40,6 +40,7 @@ def allocate_manpower(
     event_dict:      dict,
     graph:           nx.MultiDiGraph,
     time_of_day_label: str = 'Off-Peak',
+    cox_t80:         float = 120.0,
 ) -> dict:
     """
     Calculate the police officer deployment plan for a given event simulation.
@@ -51,6 +52,7 @@ def allocate_manpower(
     event_dict         : event record (from DataPipeline.get_top_events)
     graph              : the local subgraph (for lat/lon of barricade nodes)
     time_of_day_label  : 'Rush Hour', 'Off-Peak', or 'Night'
+    cox_t80            : 80th percentile clearance time from Cox PH model
 
     Returns
     -------
@@ -102,8 +104,8 @@ def allocate_manpower(
         officers_per = max(1, officers_per - 1)
 
     # ── Shift duration ────────────────────────────────────────────────────────
-    # Derived from ML-predicted resolution time, clamped to [2h, 8h]
-    shift_hours = int(max(2, min(8, round(resolution_min / 60))))
+    # Derived from Cox PH predicted 80th-percentile resolution time, clamped to [2h, 8h]
+    shift_hours = int(max(2, min(8, round(cox_t80 / 60))))
 
     # ── Per-barricade breakdown ───────────────────────────────────────────────
     barricade_details = []
