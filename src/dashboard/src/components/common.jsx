@@ -13,7 +13,7 @@ export function Card({ children, className = '', tone = 'default', ...rest }) {
     default: 'bg-white border border-slate-200 shadow-sm dark:bg-slate-900/70 dark:border-slate-800 dark:shadow-none',
     quiet:   'bg-slate-50/70 border border-slate-200/70 dark:bg-slate-900/40 dark:border-slate-800/60',
     soft:    'bg-slate-50 border border-slate-200 dark:bg-slate-800/40 dark:border-slate-700/50',
-    accent:  'bg-white border-l-4 border-l-blue-600 border-r border-y border-slate-200 shadow-sm dark:bg-blue-950/30 dark:border-blue-900/60',
+    accent:  'bg-white border-l-4 border-l-blue-700 border-r border-y border-slate-200 shadow-sm dark:bg-blue-950/30 dark:border-blue-900/60',
     success: 'bg-white border-l-4 border-l-emerald-600 border-r border-y border-slate-200 shadow-sm dark:bg-emerald-950/20 dark:border-emerald-900/50',
     warning: 'bg-white border-l-4 border-l-amber-600 border-r border-y border-slate-200 shadow-sm dark:bg-amber-950/20 dark:border-amber-900/50',
     danger:  'bg-white border-l-4 border-l-rose-600 border-r border-y border-slate-200 shadow-sm dark:bg-rose-950/20 dark:border-rose-900/50',
@@ -164,7 +164,7 @@ export function Step({ index, title, description, state = 'done', children }) {
 export function Spinner({ size = 'md' }) {
   const sizeMap = { sm: 'w-4 h-4 border', md: 'w-5 h-5 border-2', lg: 'w-7 h-7 border-2' }
   return (
-    <div className={`${sizeMap[size]} border-slate-300 border-t-blue-600 rounded-full animate-spin dark:border-slate-700 dark:border-t-blue-400`} />
+    <div className={`${sizeMap[size]} border-slate-300 border-t-blue-700 rounded-full animate-spin dark:border-slate-700 dark:border-t-blue-400`} />
   )
 }
 
@@ -187,7 +187,7 @@ export function PrimaryButton({ children, onClick, icon: I, className = '', ...r
   return (
     <button
       onClick={onClick}
-      className={`inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-sm font-medium transition-colors shadow-sm ${className}`}
+      className={`inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-blue-700 hover:bg-blue-800 active:bg-blue-900 text-white text-sm font-medium transition-colors shadow-sm ${className}`}
       {...rest}
     >
       {I && <I width={16} height={16} />}

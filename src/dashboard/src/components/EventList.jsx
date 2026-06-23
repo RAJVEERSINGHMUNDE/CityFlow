@@ -171,7 +171,7 @@ export function ScenarioForm({ onSubmit, onCancel, error }) {
       {error && <p className="text-[11px] text-rose-700 bg-rose-50 border border-rose-200 rounded-md px-2 py-1.5 dark:text-rose-300 dark:bg-rose-950/30 dark:border-rose-900/60">{error}</p>}
 
       <div className="flex gap-2">
-        <button type="submit" className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium shadow-sm">
+        <button type="submit" className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-blue-700 hover:bg-blue-800 text-white text-sm font-medium shadow-sm">
           <Icon.Sparkle width={14} height={14} />
           Create &amp; plan
         </button>

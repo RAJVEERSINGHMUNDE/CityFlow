@@ -42,7 +42,7 @@ export function SituationCard({ event, severity, severityLoading }) {
   return (
     <Card className="p-5" tone="default">
       <div className="flex items-start gap-3 mb-3">
-        <div className="w-10 h-10 rounded-lg bg-blue-50 ring-1 ring-blue-600/20 flex items-center justify-center text-blue-700 shrink-0 dark:bg-blue-950/40 dark:text-blue-300">
+        <div className="w-10 h-10 rounded-lg bg-blue-50 ring-1 ring-blue-700/20 flex items-center justify-center text-blue-700 shrink-0 dark:bg-blue-950/40 dark:text-blue-300">
           <Icon.Flag width={20} height={20} />
         </div>
         <div className="flex-1 min-w-0">

@@ -103,7 +103,7 @@ export function HelpModal({ open, onClose }) {
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-blue-50 ring-1 ring-blue-600/20 text-blue-700 flex items-center justify-center dark:bg-blue-950/40 dark:text-blue-300">
+            <div className="w-9 h-9 rounded-lg bg-blue-50 ring-1 ring-blue-700/20 text-blue-700 flex items-center justify-center dark:bg-blue-950/40 dark:text-blue-300">
               <Icon.Book width={18} height={18} />
             </div>
             <div>
@@ -122,7 +122,7 @@ export function HelpModal({ open, onClose }) {
               key={t}
               onClick={() => setTab(t)}
               className={`px-3 py-2.5 text-sm font-medium border-b-2 transition-colors capitalize ${
-                tab === t ? 'border-blue-600 text-blue-700 dark:border-blue-400 dark:text-blue-300' : 'border-transparent text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100'
+                tab === t ? 'border-blue-700 text-blue-700 dark:border-blue-400 dark:text-blue-300' : 'border-transparent text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100'
               }`}
             >
               {t === 'faq' ? 'FAQ' : t}

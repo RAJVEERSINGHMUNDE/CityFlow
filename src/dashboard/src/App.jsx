@@ -152,11 +152,11 @@ export default function App() {
 
   // ── Render ────────────────────────────────────────────────────────────
   return (
-    <div className="h-screen w-full flex flex-col bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+    <div className="h-screen w-full flex flex-col bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
       {/* Header */}
       <header className="bg-white/80 border-b border-slate-200 px-5 py-3 flex items-center gap-4 shrink-0 backdrop-blur-md dark:bg-slate-900/80 dark:border-slate-800">
         <button onClick={goHome} className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
-          <div className="w-8 h-8 rounded-lg bg-slate-900 flex items-center justify-center text-white shadow-sm dark:bg-blue-600">
+          <div className="w-8 h-8 rounded-lg bg-slate-900 flex items-center justify-center text-white shadow-sm dark:bg-blue-700">
             <Icon.Route width={18} height={18} />
           </div>
           <div className="text-left">

@@ -2,10 +2,10 @@ import { Icon } from './icons.jsx'
 
 export function Onboarding({ onLoadDemo, onCreateCustom, onExploreHotspots, hotspotsCount, eventsCount, error }) {
   return (
-    <div className="h-full flex flex-col items-center justify-center px-6 py-10 overflow-y-auto bg-slate-50 dark:bg-slate-950">
+    <div className="h-full flex flex-col items-center justify-center px-6 py-10 overflow-y-auto bg-slate-100 dark:bg-slate-950">
       <div className="max-w-3xl w-full">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 ring-1 ring-blue-600/20 text-blue-700 text-xs font-medium mb-4 dark:bg-blue-950/40 dark:text-blue-300">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 ring-1 ring-blue-700/20 text-blue-700 text-xs font-medium mb-4 dark:bg-blue-950/40 dark:text-blue-300">
             <Icon.Sparkle width={12} height={12} />
             Smart traffic planning for Bengaluru
           </div>
@@ -25,7 +25,7 @@ export function Onboarding({ onLoadDemo, onCreateCustom, onExploreHotspots, hots
           ].map(s => (
             <div key={s.n} className="p-4 rounded-xl bg-white ring-1 ring-slate-200 shadow-sm dark:bg-slate-900 dark:ring-slate-800">
               <div className="flex items-center gap-2 mb-2">
-                <span className="w-7 h-7 rounded-full bg-blue-50 ring-1 ring-blue-600/20 text-blue-700 flex items-center justify-center text-xs font-semibold dark:bg-blue-950/40 dark:text-blue-300">{s.n}</span>
+                <span className="w-7 h-7 rounded-full bg-blue-50 ring-1 ring-blue-700/20 text-blue-700 flex items-center justify-center text-xs font-semibold dark:bg-blue-950/40 dark:text-blue-300">{s.n}</span>
                 <s.icon width={14} height={14} className="text-slate-500 dark:text-slate-400" />
               </div>
               <h3 className="text-sm font-semibold text-slate-900 mb-1 dark:text-slate-50">{s.title}</h3>
@@ -42,7 +42,7 @@ export function Onboarding({ onLoadDemo, onCreateCustom, onExploreHotspots, hots
               onClick={onLoadDemo}
               className="text-left p-4 rounded-lg bg-emerald-50 ring-1 ring-emerald-600/20 hover:bg-emerald-100 transition-colors group dark:bg-emerald-950/30 dark:ring-emerald-900/40 dark:hover:bg-emerald-950/50"
             >
-              <div className="w-8 h-8 rounded-md bg-emerald-600 text-white flex items-center justify-center mb-2 shadow-sm">
+              <div className="w-8 h-8 rounded-md bg-blue-700 text-white flex items-center justify-center mb-2 shadow-sm">
                 <Icon.Sparkle width={16} height={16} />
               </div>
               <div className="text-sm font-semibold text-slate-900 mb-1 dark:text-slate-50">Load demo events</div>
@@ -53,7 +53,7 @@ export function Onboarding({ onLoadDemo, onCreateCustom, onExploreHotspots, hots
               onClick={onCreateCustom}
               className="text-left p-4 rounded-lg bg-violet-50 ring-1 ring-violet-600/20 hover:bg-violet-100 transition-colors group dark:bg-violet-950/30 dark:ring-violet-900/40 dark:hover:bg-violet-950/50"
             >
-              <div className="w-8 h-8 rounded-md bg-violet-600 text-white flex items-center justify-center mb-2 shadow-sm">
+              <div className="w-8 h-8 rounded-md bg-blue-700 text-white flex items-center justify-center mb-2 shadow-sm">
                 <Icon.Plus width={16} height={16} />
               </div>
               <div className="text-sm font-semibold text-slate-900 mb-1 dark:text-slate-50">Create your own</div>
@@ -64,7 +64,7 @@ export function Onboarding({ onLoadDemo, onCreateCustom, onExploreHotspots, hots
               onClick={onExploreHotspots}
               className="text-left p-4 rounded-lg bg-amber-50 ring-1 ring-amber-600/20 hover:bg-amber-100 transition-colors group dark:bg-amber-950/30 dark:ring-amber-900/40 dark:hover:bg-amber-950/50"
             >
-              <div className="w-8 h-8 rounded-md bg-amber-600 text-white flex items-center justify-center mb-2 shadow-sm">
+              <div className="w-8 h-8 rounded-md bg-blue-700 text-white flex items-center justify-center mb-2 shadow-sm">
                 <Icon.Pin width={16} height={16} />
               </div>
               <div className="text-sm font-semibold text-slate-900 mb-1 dark:text-slate-50">See past hotspots</div>

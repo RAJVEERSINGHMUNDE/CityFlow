@@ -15,7 +15,7 @@ export function AnalysisView({
   const [view, setView] = useState('story') // 'story' | 'plan'
 
   return (
-    <div className="h-full flex flex-col overflow-hidden bg-slate-50 dark:bg-slate-950">
+    <div className="h-full flex flex-col overflow-hidden bg-slate-100 dark:bg-slate-950">
       <div className="px-5 py-3 border-b border-slate-200 bg-white/80 backdrop-blur-md flex items-center gap-2 shrink-0 dark:border-slate-800 dark:bg-slate-900/80">
         <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-50">Analysis for: <span className="text-blue-700 dark:text-blue-300">{event.cause}</span></h2>
         <span className="text-slate-300 mx-1 dark:text-slate-600">•</span>
@@ -94,7 +94,7 @@ export function AnalysisView({
 function StepCard({ n, icon: I, title, body, children }) {
   return (
     <div className="relative pl-12">
-      <div className="absolute left-0 top-0 w-9 h-9 rounded-full bg-blue-50 ring-2 ring-blue-600/30 text-blue-700 flex items-center justify-center text-sm font-semibold dark:bg-blue-950/40 dark:text-blue-300">
+      <div className="absolute left-0 top-0 w-9 h-9 rounded-full bg-blue-50 ring-2 ring-blue-700/30 text-blue-700 flex items-center justify-center text-sm font-semibold dark:bg-blue-950/40 dark:text-blue-300">
         {n}
       </div>
       <div className="mb-3">

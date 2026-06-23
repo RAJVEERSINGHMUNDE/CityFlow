@@ -141,7 +141,7 @@ export function FeedbackPanel({ event, severity, manpower, onSubmitted, summary 
           <button
             type="submit"
             disabled={submitting}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium shadow-sm"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-700 hover:bg-blue-800 disabled:opacity-50 text-white text-sm font-medium shadow-sm"
           >
             <Icon.Check width={14} height={14} />
             {submitting ? 'Saving…' : 'Save outcome'}
