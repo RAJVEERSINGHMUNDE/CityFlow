@@ -1,0 +1,40 @@
+// Inline SVG icons. Stroke-based icons inherit color from CSS `color`.
+
+const base = {
+  width: 18,
+  height: 18,
+  viewBox: '0 0 24 24',
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 1.8,
+  strokeLinecap: 'round',
+  strokeLinejoin: 'round',
+}
+
+export const Icon = {
+  Help:        (p) => (<svg {...base} {...p}><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.8.4-1 .9-1 1.7M12 17h.01"/></svg>),
+  Info:        (p) => (<svg {...base} {...p}><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>),
+  Close:       (p) => (<svg {...base} {...p}><path d="M18 6 6 18M6 6l12 12"/></svg>),
+  ChevronDown: (p) => (<svg {...base} {...p}><path d="m6 9 6 6 6-6"/></svg>),
+  ChevronRight:(p) => (<svg {...base} {...p}><path d="m9 6 6 6-6 6"/></svg>),
+  Map:         (p) => (<svg {...base} {...p}><path d="M9 20 3 17.3V5l6 2.7 6-2.7L21 7.5V20l-6-2.7-6 2.7Z"/><path d="M9 7.7v12M15 5v12"/></svg>),
+  Calendar:    (p) => (<svg {...base} {...p}><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>),
+  People:      (p) => (<svg {...base} {...p}><circle cx="9" cy="8" r="3.2"/><path d="M3 20c.6-3.4 3-5 6-5s5.4 1.6 6 5"/><circle cx="17" cy="9" r="2.4"/><path d="M15 20c.4-2.4 1.7-3.7 4-3.7"/></svg>),
+  Shield:      (p) => (<svg {...base} {...p}><path d="M12 3 4 6v6c0 4.5 3.4 8.4 8 9 4.6-.6 8-4.5 8-9V6l-8-3Z"/><path d="m9 12 2 2 4-4"/></svg>),
+  Car:         (p) => (<svg {...base} {...p}><path d="M5 13 7 8h10l2 5M5 13h14v5H5zM8 18h.01M16 18h.01"/></svg>),
+  Alert:       (p) => (<svg {...base} {...p}><path d="M12 3 2 21h20L12 3Z"/><path d="M12 10v4M12 17h.01"/></svg>),
+  Check:       (p) => (<svg {...base} {...p}><path d="m5 12 5 5L20 7"/></svg>),
+  Clock:       (p) => (<svg {...base} {...p}><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>),
+  Route:       (p) => (<svg {...base} {...p}><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M6 8.5v4a3 3 0 0 0 3 3h6a3 3 0 0 1 3 3v0"/></svg>),
+  Trend:       (p) => (<svg {...base} {...p}><path d="m3 17 6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg>),
+  Sparkle:     (p) => (<svg {...base} {...p}><path d="M12 4v4M12 16v4M4 12h4M16 12h4M6.3 6.3l2.8 2.8M14.9 14.9l2.8 2.8M6.3 17.7l2.8-2.8M14.9 9.1l2.8-2.8"/></svg>),
+  Flag:        (p) => (<svg {...base} {...p}><path d="M5 21V4h11l-2 4 2 4H5"/></svg>),
+  Plus:        (p) => (<svg {...base} {...p}><path d="M12 5v14M5 12h14"/></svg>),
+  Lightbulb:   (p) => (<svg {...base} {...p}><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.2 1 2V18h6v-1.3c0-.8.4-1.5 1-2A7 7 0 0 0 12 2Z"/></svg>),
+  Layers:      (p) => (<svg {...base} {...p}><path d="m12 3 9 5-9 5-9-5 9-5Z"/><path d="m3 13 9 5 9-5"/></svg>),
+  Volume:      (p) => (<svg {...base} {...p}><path d="M11 5 6 9H2v6h4l5 4V5Z"/><path d="M15 9a4 4 0 0 1 0 6M18 6a8 8 0 0 1 0 12"/></svg>),
+  Pin:         (p) => (<svg {...base} {...p}><path d="M12 22s7-7 7-12a7 7 0 1 0-14 0c0 5 7 12 7 12Z"/><circle cx="12" cy="10" r="2.5"/></svg>),
+  Bolt:        (p) => (<svg {...base} {...p}><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z"/></svg>),
+  Globe:       (p) => (<svg {...base} {...p}><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>),
+  Book:        (p) => (<svg {...base} {...p}><path d="M4 4h11a3 3 0 0 1 3 3v13H7a3 3 0 0 1-3-3V4Z"/><path d="M4 17h14"/></svg>),
+}
