@@ -102,7 +102,7 @@ export function MapComparison({ simulation, loading, error, onRetry }) {
       </div>
 
       {tab === 'plan' && (
-        <div className="flex-1 flex relative">
+        <div className="flex-1 flex relative min-h-[400px]">
           <MapFrame
             src={simulation.maps?.baseline_url}
             label="Without action"
@@ -120,7 +120,7 @@ export function MapComparison({ simulation, loading, error, onRetry }) {
       )}
 
       {tab === 'active' && (
-        <div className="flex-1 relative">
+        <div className="flex-1 relative min-h-[400px]">
           <MapFrame
             src={simulation.maps?.active_url || simulation.map_url}
             label="Recommended plan"
@@ -130,7 +130,7 @@ export function MapComparison({ simulation, loading, error, onRetry }) {
       )}
 
       {tab === 'history' && (
-        <div className="flex-1 relative">
+        <div className="flex-1 relative min-h-[400px]">
           <iframe src="/maps/hotspot_heatmap.html" className="w-full h-full border-0" title="Historical hotspots" />
         </div>
       )}

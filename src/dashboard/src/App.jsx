@@ -91,7 +91,7 @@ export default function App() {
           return
         }
         try {
-          const sr = await fetch(`${API}/api/status/${taskId}`)
+          const sr = await fetch(`${API}/api/status/${taskId}?_t=${Date.now()}`, { cache: 'no-store' })
           const sdata = await sr.json()
           if (sdata.status === 'success') {
             stopPolling(); setSimulation(sdata); setSimLoading(false)
