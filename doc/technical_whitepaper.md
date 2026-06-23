@@ -43,9 +43,9 @@ Traffic jams back‑propagate upstream. CityFlow implements a **Reverse BFS** th
 ### 3.2 Time‑of‑Day Contextual Multipliers
 Traffic routing is highly sensitive to time. Instead of a uniform scalar, CityFlow applies a **per‑class hourly‑calibrated multiplier**:
 
-$$ multiplier = 1 + (hourly\_mult - 1) \times sensitivity[highway] $$
+$$ multiplier = \max\left(0.1,\; 1 + (hourly\_mult - 1) \times sensitivity[highway]\right) $$
 
-where `_CLASS_SENSITIVITY` defines base sensitivities (e.g., `motorway:1.6, primary:1.4, residential:0.7`). The hourly multiplier `hourly_mult` is obtained from `hotspot_analyzer.get_hourly_multiplier(hour)`. This differential weighting penalises arterials more at peak and reduces penalties for residential roads.
+where `_CLASS_SENSITIVITY` defines base sensitivities (e.g., `motorway:1.6, primary:1.4, residential:0.7`). The hourly multiplier `hourly_mult` is obtained from `hotspot_analyzer.get_hourly_multiplier(hour)`. The `max(0.1, …)` floor prevents the multiplier from going negative at low-traffic hours (e.g., `hourly_mult ≈ 0.1` on a motorway with sensitivity 1.6 would otherwise produce `-0.44×`). This differential weighting penalises arterials more at peak and reduces penalties for residential roads.
 
 ### 3.3 Continuous Flow Barricading
 A naive barricade algorithm simply identifies a closed edge $(u, v)$ and tells the police to place a barricade at $u$. **The Flaw:** If $u$ is a dead‑end intersection where the *only* outgoing path was $(u, v)$, placing a barricade at $u$ traps incoming cars. They will hit the barricade and be forced into dangerous U‑turns.

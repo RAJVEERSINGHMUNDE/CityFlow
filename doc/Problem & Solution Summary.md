@@ -47,12 +47,19 @@ dataset/2.csv (8,173+ Bengaluru traffic events)
 
 | Component | Approach | Why |
 |---|---|---|
-| **Congestion model** | BPR function on edges with upstream BFS capacity decay | Physically meaningful; propagates queue spillback directionally |
-| **Affected flows** | Find arterial OD pairs whose *baseline* paths pass through the epicenter | Only recommends diversion for flows that actually cross the event — avoids false recommendations |
-| **Severity prediction** | GBM Regressor (log-space) for resolution time + RF Classifier for response level | Two-head approach: continuous time estimate + categorical confidence-calibrated label |
-| **Manpower** | Linear formula calibrated on historical patterns | Interpretable; accounts for severity, attendance, time-of-day, closure type |
-| **Post-event learning** | `feedback` table in SQLite stores actual vs. predicted resolution & officers | Enables forecast error tracking via `/api/feedback/summary` |
-| **Graph** | Cached Bengaluru `.graphml` + per-request ego-subgraph extraction | Fast simulation without repeated Overpass API calls |
+| **Congestion model** | BPR function with reverse-BFS upstream capacity decay | Physically meaningful; propagates queue spillback directionally |
+| **Affected flows** | Volume-aware: rank arterial OD pairs by `distance × capacity_score` | Picks flows that both cross the event and carry meaningful traffic |
+| **Severity prediction** | GBM Regressor (log-space) for resolution time + RF Classifier for response level | Two-head approach: continuous + categorical |
+| **Survival model** | Cox PH with right-censoring (`E=0`), `hour_sin`/`hour_cos` covariates | Honours un-resolved events; reports C-index concordance; `t80` drives manpower shifts |
+| **Time-of-day routing** | Per-class hourly multiplier clamped to `max(0.1, 1 + (hourly_mult−1)×sensitivity)` | Arterials amplify peak signal; residential dampens — route actually changes between peak and off-peak |
+| **Impact forecast** | Pre-event module: attendance + duration + historical analogue → delay-minutes, queue, vehicles | Directly answers PS2 pain point #1 (advance quantification) |
+| **Manpower** | Linear formula with `np.linalg.lstsq` refitting from feedback | Learns from every event; weights persisted to disk |
+| **Post-event learning** | `/api/feedback` re-fits manpower weights + NLP classifier (no forgetting) | Forecast error tracked via `/api/feedback/summary` |
+| **NLP classifier** | `sentence-transformers/LaBSE` (multilingual CPU) + logistic head | Weak-labels from description text; retrained without catastrophic forgetting |
+| **Graph** | Cached Bengaluru `.graphml` (155K nodes, 393K edges) | Fast sub-graph extraction, no repeated API calls |
+| **Barricading** | Edge-set based: upstream nodes with remaining out-degree, validated | No graph fracture — each barricade blocks a closure entry with an alternate exit |
+| **Diversion plan** | Structured artifact: `plan_summary` + per-barricade `barricade_plan` | Produces a deployable plan (barricade locations, officer counts, flows protected) |
+| **Realtime adapter** | Pluggable `RealtimeFeed` with `HistoricalReplayFeed` | Swappable for live traffic feed; serves `/api/realtime/incidents` |
 
 ---
 
@@ -60,7 +67,15 @@ dataset/2.csv (8,173+ Bengaluru traffic events)
 **Resolved:**
 1. ✅ **Manpower formula now learns from feedback** — weights are re-fitted via `np.linalg.lstsq` after every 10 feedback entries.
 2. ✅ **Feedback loop now retrains models** — both the NLP classifier (without catastrophic forgetting) and the manpower weights update automatically.
-4. ✅ **Flow selection now volume-aware** — candidates are ranked by `distance × capacity_score`, where capacity_score averages road capacity along the route.
+3. ✅ **Flow selection now volume-aware** — candidates ranked by `distance × capacity_score`.
+4. ✅ **Impact forecast deployed** — `impact_forecast.py` produces pre-event delay, queue, vehicle count, and response tier.
+5. ✅ **Realtime adapter interface** — pluggable feed with historical-replay mode at `/api/realtime/incidents`.
+6. ✅ **Diversion plan artifact** — structured `plan_summary` + `barricade_plan` in simulation output.
+7. ✅ **Planned vs unplanned mode** — `event_type` routing with attendance-aware spillover radius.
+8. ✅ **Differential time-of-day routing** — per-class hourly multipliers produce different routes at peak vs off-peak.
 
 **Remaining:**
-3. **No diversion route avoids *spillover* edges** — only closed edges are stripped from the diversion graph; spillover congestion is reflected in BPR-inflated travel times but the route-finding graph still includes heavily congested links.
+1. **No diversion route avoids *spillover* edges** — only closed edges are stripped from the diversion graph; spillover congestion is reflected in BPR-inflated travel times but the route-finding graph still includes heavily congested links.
+2. **NLP classifier requires ≥8 GB RAM** — LaBSE model (~1.9 GB serialized) causes OOM on 4 GB servers. Falls back to `disrupted_prob=0.5`.
+3. **No real-time traffic feed** — the adapter interface exists but uses historical replay. Live feed requires third-party API integration.
+4. **No vehicle-level microsimulation** — CityFlow is a graph-based intervention planner, not SUMO/AIMSUN. This is by design (see whitepaper).

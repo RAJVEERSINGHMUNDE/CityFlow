@@ -83,7 +83,7 @@ class CongestionSimulator:
                     continue
                 hw = self._highway_value(data)
                 sensitivity = self._CLASS_SENSITIVITY.get(hw, 1.0)
-                multiplier = 1.0 + (hourly_mult - 1.0) * sensitivity
+                multiplier = max(0.1, 1.0 + (hourly_mult - 1.0) * sensitivity)
                 data['travel_time'] = float(data['travel_time']) * multiplier
 
     def get_arterial_od_pair(self):

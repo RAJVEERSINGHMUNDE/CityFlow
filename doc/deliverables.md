@@ -8,13 +8,16 @@ Deliverables for the CityFlow Digital Twin submission: here is the checklist of 
 - **Status**: **READY** (The `src/` directory contains the full React + Flask stack).
 
 ### Submission-readiness features
-- Operator-created planned and unplanned scenarios
-- Event-affected arterial flow selection
-- Do-nothing versus intervention travel-time comparison
-- Closure-avoiding diversion and barricade validation
-- Attendance-aware staffing and severity adjustments
-- SQLite-backed outcomes and forecast-error reporting
-- Automated graph intervention and persistence tests
+- Operator-created planned and unplanned scenarios (`event_type` routing with attendance-aware spillover)
+- Event-affected arterial flow selection (volume-aware, ranked by `distance × capacity_score`)
+- Do-nothing versus intervention travel-time comparison (with police compliance simulation)
+- Differential time-of-day routing (per-class hourly multiplier, route changes between peak/off-peak)
+- Closure-avoiding diversion, barricade validation, and structured diversion plan artifact
+- Attendance-aware staffing, spillover radius, and severity adjustments
+- Pre-event traffic impact forecast (delay-minutes, queue length, vehicle count, response tier)
+- Realtime data adapter (pluggable interface with historical-replay mode)
+- SQLite-backed outcomes, forecast-error reporting, and model retraining pipeline
+- Automated graph intervention and persistence tests (5 unit tests passing)
 
 ## 2. Technical Architecture & Documentation
 - **Description**: A comprehensive technical whitepaper outlining the mathematical foundations (Reverse-BFS, Dijkstra), algorithms (Continuous Flow Barricading), and system architecture (Asynchronous Polling).
