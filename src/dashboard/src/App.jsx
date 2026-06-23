@@ -285,10 +285,21 @@ export default function App() {
           <div className="px-4 py-3 border-b border-slate-800 shrink-0">
             <div className="flex items-center justify-between mb-1">
               <h2 className="text-sm font-medium text-slate-200">Events</h2>
-              <button onClick={() => setShowScenario(v => !v)}
-                className="px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700 text-[11px] hover:bg-slate-700">
-                {showScenario ? 'Cancel' : '+ Custom'}
-              </button>
+              <div className="flex gap-1">
+                <button onClick={async () => {
+                  try {
+                    const r = await fetch(`${API}/api/scenarios/demo`, { method: 'POST' })
+                    const data = await r.json()
+                    if (r.ok) setEvents(current => [...data.scenarios, ...current])
+                  } catch {}
+                }} className="px-2 py-0.5 rounded bg-emerald-900/30 text-emerald-400 border border-emerald-800 text-[11px] hover:bg-emerald-800/50">
+                  Load Demo
+                </button>
+                <button onClick={() => setShowScenario(v => !v)}
+                  className="px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700 text-[11px] hover:bg-slate-700">
+                  {showScenario ? 'Cancel' : '+ Custom'}
+                </button>
+              </div>
             </div>
             <p className="text-[11px] text-slate-500">Select an event to analyze its traffic impact.</p>
           </div>
@@ -410,6 +421,17 @@ export default function App() {
                     Retry
                   </button>
                 </div>
+              ) : simulation?.maps ? (
+                <div className="flex w-full h-full">
+                  <div className="w-1/2 h-full border-r border-slate-700 relative">
+                    <div className="absolute top-3 left-3 z-[400] bg-slate-900/90 px-2 py-1 rounded text-xs text-red-400 border border-red-800/50 shadow-lg font-medium">Baseline (No Diversion)</div>
+                    <iframe src={`${API}${simulation.maps.baseline_url}`} className="w-full h-full border-0" title="Baseline Map" />
+                  </div>
+                  <div className="w-1/2 h-full relative">
+                    <div className="absolute top-3 left-3 z-[400] bg-slate-900/90 px-2 py-1 rounded text-xs text-emerald-400 border border-emerald-800/50 shadow-lg font-medium">CityFlow Active</div>
+                    <iframe src={`${API}${simulation.maps.active_url}`} className="w-full h-full border-0" title="Diversion Map" />
+                  </div>
+                </div>
               ) : simulation?.map_url ? (
                 <iframe src={`${API}${simulation.map_url}`} className="w-full h-full border-0" title="Diversion Map" />
               ) : (
@@ -476,8 +498,9 @@ export default function App() {
                     <>
                       <div className="flex items-center justify-between">
                         <LevelBadge level={severity.response_level} />
-                        <span className="text-[11px] text-slate-500">
-                          {Math.round((severity.confidence ?? 0) * 100)}% confidence
+                        <span className="text-[11px] text-slate-500 flex items-center gap-1.5">
+                          {Math.round((severity.confidence ?? 0) * 100)}% conf
+                          {(severity.confidence ?? 0) < 0.6 && <span className="bg-amber-900/40 text-amber-500 border border-amber-700/50 px-1 rounded text-[9px] uppercase">Heuristics Fallback</span>}
                         </span>
                       </div>
                       <SeverityBar score={severity.severity_score} />
@@ -500,6 +523,29 @@ export default function App() {
                               <span className="font-mono text-slate-300">{cnt}</span>
                             </div>
                           ))}
+                        </div>
+                      )}
+
+                      {selectedEvent.description && (
+                        <div className="pt-2 border-t border-slate-800 mt-3">
+                          <p className="text-[11px] text-slate-500 mb-1">Multilingual NLP Explainability (LaBSE)</p>
+                          <p className="text-xs text-slate-300 p-2 bg-slate-800/50 rounded border border-slate-700 font-sans leading-relaxed">
+                            {(() => {
+                              const text = selectedEvent.description;
+                              const flagged = severity.nlp_flagged_words || [];
+                              if (!flagged.length) return text;
+                              
+                              const parts = text.split(new RegExp(`(${flagged.join('|')})`, 'gi'));
+                              return parts.map((part, i) => 
+                                flagged.some(f => f.toLowerCase() === part.toLowerCase()) ? 
+                                  <span key={i} className="text-red-400 font-semibold bg-red-900/20 px-0.5 rounded">{part}</span> : 
+                                  part
+                              );
+                            })()}
+                          </p>
+                          <p className="text-[10px] text-slate-500 mt-1">
+                            Disruption prob: <span className={severity.nlp_disruption_prob > 0.5 ? 'text-red-400 font-medium' : 'text-emerald-400 font-medium'}>{Math.round((severity.nlp_disruption_prob || 0) * 100)}%</span>
+                          </p>
                         </div>
                       )}
                     </>
