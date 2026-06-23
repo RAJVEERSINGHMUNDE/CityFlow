@@ -41,7 +41,7 @@ This repository successfully addresses **Problem Statement 2: Event-Driven Conge
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 We've bundled the Flask API and the React/Vite dashboard into a straightforward local setup.
 
@@ -71,7 +71,7 @@ npm run dev
 
 ---
 
-## 🎯 Demo Guide for Judges
+## Demo Guide for Judges
 
 To experience CityFlow's capabilities, open the Dashboard (`localhost:3000`) and click **"Load Demo"** in the left panel. This pre-loads three distinct edge-cases into the memory:
 
