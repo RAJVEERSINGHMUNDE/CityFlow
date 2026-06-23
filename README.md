@@ -85,5 +85,3 @@ When a simulation completes, the central view displays two synchronized maps:
 - **CityFlow Active:** Shows strategic barricade placements and clean, penalty-validated diversion routes.
 
 ---
-
-*CityFlow: Mathematical routing intelligence, not just colored lines on a map.*
