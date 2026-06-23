@@ -31,8 +31,7 @@ CORS(app)
 DATA_PATH = os.path.abspath(
     os.path.join(os.path.dirname(__file__), '../../dataset/2.csv')
 )
-if not os.path.exists(DATA_PATH):
-    DATA_PATH = r"d:\CODE\Python\AIML\CityFlow\dataset\2.csv"
+
 
 pipeline = DataPipeline(DATA_PATH)
 pipeline.load_and_clean_data()
@@ -247,6 +246,7 @@ def get_severity(event_id):
     nlp_clf = get_nlp_classifier()
     nlp_impact = nlp_clf.predict_impact(event.get('description', ''))
     severity['nlp_disruption_prob'] = nlp_impact['disrupted_prob']
+    severity['nlp_flagged_words'] = nlp_impact.get('flagged_words', [])
 
     # Attach nearby historical context from hotspot analyzer
     analyzer = get_analyzer()
@@ -403,6 +403,13 @@ def _run_simulation_task(task_id, event_id, lat, lon, time_str, event_dict):
             for flow in flow_results
         ]
 
+        # Generate Baseline map (Epicenter + Chaos, no diversions)
+        baseline_html = sim.visualize_flows([], [])
+        baseline_filename = f"baseline_{task_id}.html"
+        baseline_path = os.path.join(MAPS_DIR, baseline_filename)
+        with open(baseline_path, 'w', encoding='utf-8') as f:
+            f.write(baseline_html)
+
         result_dict = {
             "metrics": {
                 "barricades_needed":     len(valid_barricades),
@@ -421,6 +428,10 @@ def _run_simulation_task(task_id, event_id, lat, lon, time_str, event_dict):
             "barricade_validation": barricade_validation,
             "manpower_plan": manpower_plan,
             "diversion_plan": sim.synthesize_diversion_plan(flow_results, barricade_validation, manpower_plan, closed),
+            "maps": {
+                "active_url": f"/api/maps/{task_id}",
+                "baseline_url": f"/maps/{baseline_filename}"
+            }
         }
         
         update_task_success(task_id, result_dict, map_html)
@@ -471,6 +482,63 @@ def get_realtime_incidents():
         return jsonify({'error': 'Realtime feed not initialized'}), 500
     incidents = feed.get_active_incidents(ts.to_pydatetime())
     return jsonify({'incidents': incidents})
+
+@app.route('/api/realtime/stream', methods=['GET'])
+def realtime_stream():
+    def generate():
+        import random, json, time
+        while True:
+            data = {
+                "type": "live_update",
+                "speed_updates": {f"edge_{random.randint(1000, 9000)}": random.randint(5, 45) for _ in range(3)},
+                "incident_ping": None
+            }
+            if random.random() > 0.8:
+                data["incident_ping"] = {"message": "New congestion detected near ORR", "severity": "Amber"}
+            yield f"data: {json.dumps(data)}\n\n"
+            time.sleep(2)
+    from flask import Response
+    return Response(generate(), mimetype='text/event-stream', headers={'Cache-Control': 'no-cache', 'Connection': 'keep-alive'})
+
+@app.route('/api/scenarios/demo', methods=['POST'])
+def load_demo_scenarios():
+    demos = [
+        {
+            "cause": "Cricket Match",
+            "latitude": 12.9784,
+            "longitude": 77.5994,
+            "event_type": "planned",
+            "start_time": "2024-05-15T18:00:00",
+            "closure_severity": "partial",
+            "requires_closure": True,
+            "expected_attendance": 35000,
+            "description": "Cricket Match at M. Chinnaswamy Stadium"
+        },
+        {
+            "cause": "Heavy Vehicle Breakdown",
+            "latitude": 12.9345,
+            "longitude": 77.6266,
+            "event_type": "unplanned",
+            "start_time": "2024-05-16T08:30:00",
+            "closure_severity": "full",
+            "requires_closure": True,
+            "description": "Heavy multi-axle truck broken down blocking two lanes on ORR."
+        },
+        {
+            "cause": "Accident / Radio Report",
+            "latitude": 13.0285,
+            "longitude": 77.5895,
+            "event_type": "unplanned",
+            "start_time": "2024-05-16T09:15:00",
+            "closure_severity": "partial",
+            "requires_closure": False,
+            "description": "ಟ್ರಾಫಿಕ್ ತುಂಬಾ ನಿಧಾನವಾಗಿದೆ. Heavy traffic moving slow near Mekhri Circle."
+        }
+    ]
+    created = []
+    for d in demos:
+        created.append(create_scenario(d))
+    return jsonify({"message": "Demo scenarios loaded", "scenarios": created}), 201
 
 
 if __name__ == '__main__':

@@ -79,14 +79,18 @@ class NLPImpactClassifier:
 
     def predict_impact(self, text: str) -> dict:
         if not self._is_fitted or not text or not isinstance(text, str):
-            return {'disrupted_prob': 0.5, 'label': 'Unknown'}
+            return {'disrupted_prob': 0.5, 'label': 'Unknown', 'flagged_words': []}
             
         X = self._encoder.encode([text], show_progress_bar=False)
         prob = self._clf.predict_proba(X)[0]
         
+        text_lower = text.lower()
+        flagged = [kw for kw in WEAK_LABELS.keys() if kw in text_lower]
+        
         return {
             'disrupted_prob': round(float(prob[1]), 3),
-            'label': 'Disrupted' if prob[1] > 0.5 else 'Contained'
+            'label': 'Disrupted' if prob[1] > 0.5 else 'Contained',
+            'flagged_words': flagged
         }
 
     def retrain_from_feedback(self, feedback_rows: list):

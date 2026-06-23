@@ -256,7 +256,14 @@ class CongestionSimulator:
             if 't0' in data:
                 c = max(1.0, data['capacity'])
                 v_flow = data['volume']
-                data['travel_time'] = data['t0'] * (1.0 + alpha * (v_flow / c)**beta)
+                vc_ratio = v_flow / c
+                base_time = data['t0'] * (1.0 + alpha * (vc_ratio)**beta)
+                
+                # Apply Spillover Edge Penalty to discourage Dijkstra from routing through congested queues
+                if vc_ratio > 0.85:
+                    base_time *= 3.0
+                    
+                data['travel_time'] = base_time
 
         return closed_edges, spillover_edges
 

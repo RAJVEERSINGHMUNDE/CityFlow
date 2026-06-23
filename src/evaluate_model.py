@@ -28,8 +28,7 @@ from hotspot_analyzer import init_analyzer
 from manpower import allocate_manpower
 from storage import feedback_summary, get_all_feedback
 
-DATA_PATH = r"d:\\CODE\\Python\\AIML\\CityFlow\\dataset\\2.csv"
-
+DATA_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '../dataset/2.csv'))
 def phase1_topology(sim):
     euclidean_closed = set()
     for u, v, _, data in sim.G.edges(keys=True, data=True):
