@@ -10,7 +10,8 @@ export default defineConfig({
     strictPort: false,  // Auto-increment port if 3000 is still blocked
     proxy: {
       '/api': 'http://142.93.222.0:8000',
-      '/maps': 'http://142.93.222.0:8000'
+      '/maps': 'http://142.93.222.0:8000',
+      '/videos': 'http://142.93.222.0:8000'
     }
   },
 })

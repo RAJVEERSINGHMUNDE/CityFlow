@@ -111,16 +111,16 @@ export function FeedbackPanel({ event, severity, manpower, onSubmitted, summary 
             <label className={`flex items-center gap-2 p-2.5 rounded-lg ring-1 cursor-pointer transition-colors ${
               form.effective === 'yes'
                 ? 'bg-emerald-50 border-emerald-600/20 ring-emerald-600/30 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200'
-                : 'bg-white border-slate-200 ring-slate-200 text-slate-700 hover:bg-slate-50 dark:bg-slate-900 dark:border-slate-700 dark:ring-slate-700 dark:text-slate-200 dark:hover:bg-slate-800'
-            }`}>
+                : 'bg-white border-slate-300 ring-slate-300 text-slate-700 hover:bg-slate-50 dark:bg-slate-900 dark:border-slate-700 dark:ring-slate-700 dark:text-slate-200 dark:hover:bg-slate-800'
+              }`}>
               <input type="radio" name="effective" value="yes" checked={form.effective === 'yes'} onChange={e => setForm({ ...form, effective: e.target.value })} />
               <span className="text-sm">Yes, traffic flowed well</span>
             </label>
             <label className={`flex items-center gap-2 p-2.5 rounded-lg ring-1 cursor-pointer transition-colors ${
               form.effective === 'no'
                 ? 'bg-rose-50 border-rose-600/20 ring-rose-600/30 text-rose-800 dark:bg-rose-950/30 dark:text-rose-200'
-                : 'bg-white border-slate-200 ring-slate-200 text-slate-700 hover:bg-slate-50 dark:bg-slate-900 dark:border-slate-700 dark:ring-slate-700 dark:text-slate-200 dark:hover:bg-slate-800'
-            }`}>
+                : 'bg-white border-slate-300 ring-slate-300 text-slate-700 hover:bg-slate-50 dark:bg-slate-900 dark:border-slate-700 dark:ring-slate-700 dark:text-slate-200 dark:hover:bg-slate-800'
+              }`}>
               <input type="radio" name="effective" value="no" checked={form.effective === 'no'} onChange={e => setForm({ ...form, effective: e.target.value })} />
               <span className="text-sm">No, it caused more jams</span>
             </label>

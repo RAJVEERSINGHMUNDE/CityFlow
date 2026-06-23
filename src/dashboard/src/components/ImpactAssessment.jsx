@@ -122,7 +122,7 @@ export function ImpactAssessment({ severity, loading }) {
       </div>
 
       {severity.nearby_historical_events > 0 && (
-        <div className="rounded-lg bg-slate-50 ring-1 ring-slate-200/60 p-3 dark:bg-slate-800/40 dark:ring-slate-700/60">
+        <div className="rounded-lg bg-slate-50 ring-1 ring-slate-300/80 p-3 dark:bg-slate-800/40 dark:ring-slate-700/60">
           <div className="flex items-center gap-1.5 mb-1.5">
             <Icon.Help width={11} height={11} className="text-slate-500 dark:text-slate-400" />
             <span className="text-[11px] text-slate-500 font-medium uppercase tracking-wider dark:text-slate-400">What history says</span>
@@ -137,7 +137,7 @@ export function ImpactAssessment({ severity, loading }) {
           {severity.nearby_cause_breakdown && Object.keys(severity.nearby_cause_breakdown).length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1.5">
               {Object.entries(severity.nearby_cause_breakdown).slice(0, 3).map(([cause, n]) => (
-                <span key={cause} className="text-[10.5px] px-1.5 py-0.5 rounded bg-white text-slate-700 ring-1 ring-slate-200/60 dark:bg-slate-800 dark:text-slate-200 dark:ring-slate-700">
+                <span key={cause} className="text-[10.5px] px-1.5 py-0.5 rounded bg-white text-slate-700 ring-1 ring-slate-300/80 dark:bg-slate-800 dark:text-slate-200 dark:ring-slate-700">
                   {String(cause).replace(/_/g, ' ')} <span className="text-slate-500 dark:text-slate-400">×{n}</span>
                 </span>
               ))}

@@ -301,6 +301,75 @@ def serve_static_maps(filename):
     return send_from_directory(MAPS_DIR, filename)
 
 
+# ── Video streaming with HTTP Range support ──────────────────────────────
+# A 200–500 MB presentation.mp4 is too big to fully download before the
+# user can seek. The <video> element issues partial-content requests when
+# the user scrubs, so we parse the Range header and return 206 Partial
+# Content with the right Content-Range. Cache-Control is set to
+# "immutable" so Cloudflare holds the file at the edge after the first hit.
+
+import os as _os
+import mimetypes as _mimetypes
+
+VIDEOS_DIR = _os.path.abspath(
+    _os.path.join(_os.path.dirname(__file__), 'static', 'videos')
+)
+_os.makedirs(VIDEOS_DIR, exist_ok=True)
+
+
+@app.route('/videos/<path:filename>')
+def serve_videos(filename):
+    """Stream a video file from static/videos with HTTP Range support."""
+    from flask import Response, request, abort
+
+    path = _os.path.join(VIDEOS_DIR, filename)
+    if not _os.path.isfile(path):
+        abort(404)
+
+    mime, _ = _mimetypes.guess_type(filename)
+    mime = mime or 'video/mp4'
+    file_size = _os.path.getsize(path)
+
+    common_headers = {
+        'Accept-Ranges': 'bytes',
+        'Cache-Control': 'public, max-age=31536000, immutable',
+    }
+
+    range_header = request.headers.get('Range')
+    if not range_header:
+        return Response(
+            open(path, 'rb').read(),
+            mimetype=mime,
+            headers={**common_headers, 'Content-Length': str(file_size)},
+        )
+
+    # Parse "bytes=START-END"
+    try:
+        _, rng = range_header.split('=')
+        start_s, end_s = rng.split('-')
+        start = int(start_s) if start_s else 0
+        end   = int(end_s) if end_s else file_size - 1
+    except Exception:
+        abort(416)
+
+    end   = min(end, file_size - 1)
+    length = end - start + 1
+    with open(path, 'rb') as f:
+        f.seek(start)
+        data = f.read(length)
+
+    return Response(
+        data,
+        status=206,
+        mimetype=mime,
+        headers={
+            **common_headers,
+            'Content-Range': f'bytes {start}-{end}/{file_size}',
+            'Content-Length': str(length),
+        },
+    )
+
+
 def _run_simulation_task(task_id, event_id, lat, lon, time_str, event_dict):
     try:
         import osmnx as ox

@@ -13,7 +13,7 @@ export function ThemeToggle({ size = 'md' }) {
       onClick={toggle}
       aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
       title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-      className={`relative inline-flex items-center justify-center ${dims} rounded-lg border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-900 hover:border-slate-300 transition-colors dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100 dark:hover:border-slate-600`}
+      className={`relative inline-flex items-center justify-center ${dims} rounded-lg border border-slate-300 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-900 hover:border-slate-400 transition-colors dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100 dark:hover:border-slate-600`}
     >
       {isDark
         ? <Icon.Sun    width={iconDims} height={iconDims} />

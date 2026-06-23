@@ -36,7 +36,7 @@ export function ResourcePlan({ simulation }) {
       />
 
       {/* The "big number" headline */}
-      <div className="rounded-lg bg-slate-50 ring-1 ring-slate-200/60 p-4 mb-4 dark:bg-slate-800/40 dark:ring-slate-700/60">
+      <div className="rounded-lg bg-slate-50 ring-1 ring-slate-300/80 p-4 mb-4 dark:bg-slate-800/40 dark:ring-slate-700/60">
         <p className="text-xs text-slate-500 mb-1 dark:text-slate-400">With this plan, the average trip through the area is</p>
         <p className="text-3xl font-bold text-emerald-700 leading-tight dark:text-emerald-400">
           {fmtNum(mt.total_time_saved_minutes)} min faster
@@ -51,7 +51,7 @@ export function ResourcePlan({ simulation }) {
 
       {/* Resource allocation */}
       <div className="grid grid-cols-3 gap-3 mb-4">
-        <div className="p-3 rounded-lg bg-white ring-1 ring-slate-200/60 dark:bg-slate-900 dark:ring-slate-700">
+        <div className="p-3 rounded-lg bg-white ring-1 ring-slate-300/80 dark:bg-slate-900 dark:ring-slate-700">
           <div className="flex items-center gap-1 text-[11px] text-slate-500 mb-1 dark:text-slate-400">
             <Icon.People width={11} height={11} />
             <span>Officers</span>
@@ -60,7 +60,7 @@ export function ResourcePlan({ simulation }) {
           <div className="text-xl font-bold text-slate-900 dark:text-slate-50">{mp.total_officers || 0}</div>
           <div className="text-[10.5px] text-slate-500 mt-0.5 dark:text-slate-400">{mp.officers_per_barricade || 0} per barricade</div>
         </div>
-        <div className="p-3 rounded-lg bg-white ring-1 ring-slate-200/60 dark:bg-slate-900 dark:ring-slate-700">
+        <div className="p-3 rounded-lg bg-white ring-1 ring-slate-300/80 dark:bg-slate-900 dark:ring-slate-700">
           <div className="flex items-center gap-1 text-[11px] text-slate-500 mb-1 dark:text-slate-400">
             <Icon.Shield width={11} height={11} />
             <span>Barricades</span>
@@ -69,7 +69,7 @@ export function ResourcePlan({ simulation }) {
           <div className="text-xl font-bold text-slate-900 dark:text-slate-50">{mp.num_barricades || 0}</div>
           <div className="text-[10.5px] text-slate-500 mt-0.5 dark:text-slate-400">{validBarricades.length} validated</div>
         </div>
-        <div className="p-3 rounded-lg bg-white ring-1 ring-slate-200/60 dark:bg-slate-900 dark:ring-slate-700">
+        <div className="p-3 rounded-lg bg-white ring-1 ring-slate-300/80 dark:bg-slate-900 dark:ring-slate-700">
           <div className="flex items-center gap-1 text-[11px] text-slate-500 mb-1 dark:text-slate-400">
             <Icon.Clock width={11} height={11} />
             <span>Shift</span>
@@ -84,7 +84,7 @@ export function ResourcePlan({ simulation }) {
       {(simulation.flow_analysis ?? []).length > 0 && (
         <div className="mb-4">
           <div className="text-[11px] text-slate-500 font-medium uppercase tracking-wider mb-2 dark:text-slate-400">Routes protected</div>
-          <div className="divide-y divide-slate-100 rounded-lg ring-1 ring-slate-200/60 overflow-hidden dark:divide-slate-800 dark:ring-slate-700">
+          <div className="divide-y divide-slate-200 rounded-lg ring-1 ring-slate-300/80 overflow-hidden dark:divide-slate-800 dark:ring-slate-700">
             {simulation.flow_analysis.map(flow => (
               <div key={flow.flow_id} className="flex items-center gap-2 text-xs p-2.5 bg-white dark:bg-slate-900">
                 <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${flow.valid_intervention ? 'bg-emerald-600' : 'bg-slate-400'}`} />
@@ -106,7 +106,7 @@ export function ResourcePlan({ simulation }) {
           <div className="text-[11px] text-slate-500 font-medium uppercase tracking-wider mb-2 dark:text-slate-400">Barricade locations</div>
           <div className="space-y-1.5">
             {validBarricades.map((b, i) => (
-              <div key={b.node_id} className="flex items-start gap-2 text-xs p-2 rounded-md bg-slate-50 ring-1 ring-slate-200/60 dark:bg-slate-800/40 dark:ring-slate-700">
+              <div key={b.node_id} className="flex items-start gap-2 text-xs p-2 rounded-md bg-slate-50 ring-1 ring-slate-300/80 dark:bg-slate-800/40 dark:ring-slate-700">
                 <span className="w-5 h-5 rounded-full bg-orange-50 text-orange-700 ring-1 ring-orange-600/20 flex items-center justify-center text-[10px] font-semibold shrink-0 mt-0.5 dark:bg-orange-950/40 dark:text-orange-300">
                   {i + 1}
                 </span>
@@ -139,23 +139,23 @@ export function PlanSummary({ simulation }) {
   if (!mt) return null
   return (
     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-      <div className="p-3 rounded-lg bg-white ring-1 ring-slate-200/60 dark:bg-slate-900 dark:ring-slate-700">
+      <div className="p-3 rounded-lg bg-white ring-1 ring-slate-300/80 dark:bg-slate-900 dark:ring-slate-700">
         <div className="text-[10.5px] text-slate-500 uppercase tracking-wider mb-1 dark:text-slate-400">Roads blocked</div>
         <div className="text-lg font-bold text-slate-900 dark:text-slate-50">{mt.closed_edges}</div>
       </div>
-      <div className="p-3 rounded-lg bg-white ring-1 ring-slate-200/60 dark:bg-slate-900 dark:ring-slate-700">
+      <div className="p-3 rounded-lg bg-white ring-1 ring-slate-300/80 dark:bg-slate-900 dark:ring-slate-700">
         <div className="text-[10.5px] text-slate-500 uppercase tracking-wider mb-1 dark:text-slate-400">Spillover zone</div>
         <div className="text-lg font-bold text-slate-900 dark:text-slate-50">
           {mt.spillover_radius_m ? `${(mt.spillover_radius_m / 1000).toFixed(1)} km` : '—'}
         </div>
       </div>
-      <div className="p-3 rounded-lg bg-white ring-1 ring-slate-200/60 dark:bg-slate-900 dark:ring-slate-700">
+      <div className="p-3 rounded-lg bg-white ring-1 ring-slate-300/80 dark:bg-slate-900 dark:ring-slate-700">
         <div className="text-[10.5px] text-slate-500 uppercase tracking-wider mb-1 dark:text-slate-400">Diversions set up</div>
         <div className="text-lg font-bold text-slate-900 dark:text-slate-50">
           {mt.valid_diversions}<span className="text-slate-500 dark:text-slate-400">/{mt.affected_flows}</span>
         </div>
       </div>
-      <div className="p-3 rounded-lg bg-white ring-1 ring-slate-200/60 dark:bg-slate-900 dark:ring-slate-700">
+      <div className="p-3 rounded-lg bg-white ring-1 ring-slate-300/80 dark:bg-slate-900 dark:ring-slate-700">
         <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1 dark:text-slate-400">Time of day</div>
         <div className="text-lg font-bold text-slate-900 dark:text-slate-50">{mt.time_of_day_label || '—'}</div>
       </div>

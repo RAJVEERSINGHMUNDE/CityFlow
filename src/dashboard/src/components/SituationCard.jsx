@@ -78,7 +78,7 @@ export function SituationCard({ event, severity, severityLoading }) {
         {level && <SeverityBadge level={level} large />}
       </div>
 
-      <div className="rounded-lg bg-slate-50 ring-1 ring-slate-200/60 p-3 dark:bg-slate-800/40 dark:ring-slate-700/60">
+      <div className="rounded-lg bg-slate-50 ring-1 ring-slate-300/80 p-3 dark:bg-slate-800/40 dark:ring-slate-700/60">
         {severityLoading ? (
           <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
             <Spinner size="sm" />
@@ -112,7 +112,7 @@ export function SituationCard({ event, severity, severityLoading }) {
             <span className="text-[11px] text-slate-500 font-medium uppercase tracking-wider dark:text-slate-400">Radio / log report</span>
             <Hint text="CityFlow reads the description in any language (including Kannada) and flags words that signal serious disruption - like 'heavy traffic', 'ನಿಧಾನ', 'jam'." />
           </div>
-          <p className="text-sm text-slate-800 p-3 rounded-lg bg-white ring-1 ring-slate-200 leading-relaxed dark:text-slate-200 dark:bg-slate-900 dark:ring-slate-700">
+          <p className="text-sm text-slate-800 p-3 rounded-lg bg-white ring-1 ring-slate-300 leading-relaxed dark:text-slate-200 dark:bg-slate-900 dark:ring-slate-700">
             {highlightNLP(event.description, severity?.nlp_flagged_words)}
           </p>
           {severity?.nlp_disruption_prob !== undefined && (

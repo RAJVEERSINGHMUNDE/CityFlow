@@ -52,7 +52,7 @@ export function MapComparison({ simulation, loading, error, onRetry }) {
           <p className="text-sm text-rose-800 mb-1 font-medium dark:text-rose-200">Could not calculate the plan</p>
           <p className="text-xs text-slate-500 mb-3 dark:text-slate-400">{error}</p>
           {onRetry && (
-            <button onClick={onRetry} className="px-3 py-1.5 bg-white hover:bg-slate-50 ring-1 ring-slate-200 text-slate-700 rounded-md text-xs dark:bg-slate-800 dark:hover:bg-slate-700 dark:ring-slate-700 dark:text-slate-200">
+            <button onClick={onRetry} className="px-3 py-1.5 bg-white hover:bg-slate-50 ring-1 ring-slate-300 text-slate-700 rounded-md text-xs dark:bg-slate-800 dark:hover:bg-slate-700 dark:ring-slate-700 dark:text-slate-200">
               Try again
             </button>
           )}
@@ -76,7 +76,7 @@ export function MapComparison({ simulation, loading, error, onRetry }) {
 
   return (
     <Card className="flex-1 flex flex-col" tone="default">
-      <div className="px-4 py-3 border-b border-slate-200 flex items-center gap-3 flex-wrap dark:border-slate-800">
+      <div className="px-4 py-3 border-b border-slate-300 flex items-center gap-3 flex-wrap dark:border-slate-800">
         <SectionTitle
           icon={Icon.Map}
           title="What the plan looks like"
@@ -135,7 +135,7 @@ export function MapComparison({ simulation, loading, error, onRetry }) {
         </div>
       )}
 
-      <div className="px-4 py-2.5 border-t border-slate-200 flex items-center gap-4 flex-wrap text-[11px] dark:border-slate-800">
+      <div className="px-4 py-2.5 border-t border-slate-300 flex items-center gap-4 flex-wrap text-[11px] dark:border-slate-800">
         {LEGEND.map(l => (
           <div key={l.label} className="flex items-center gap-1.5">
             <span className={`w-3 h-3 rounded-sm ${l.color}`} />

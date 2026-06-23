@@ -39,4 +39,5 @@ export const Icon = {
   Book:        (p) => (<svg {...base} {...p}><path d="M4 4h11a3 3 0 0 1 3 3v13H7a3 3 0 0 1-3-3V4Z"/><path d="M4 17h14"/></svg>),
   Sun:         (p) => (<svg {...base} {...p}><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>),
   Moon:        (p) => (<svg {...base} {...p}><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg>),
+  Play:        (p) => (<svg {...base} {...p}><path d="m6 4 14 8-14 8V4Z"/></svg>),
 }

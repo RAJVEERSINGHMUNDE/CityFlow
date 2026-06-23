@@ -101,7 +101,7 @@ export function HelpModal({ open, onClose }) {
         className="w-full max-w-3xl max-h-[85vh] bg-white ring-1 ring-slate-200 rounded-2xl shadow-2xl flex flex-col overflow-hidden dark:bg-slate-900 dark:ring-slate-700"
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-300 dark:border-slate-800">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-blue-50 ring-1 ring-blue-700/20 text-blue-700 flex items-center justify-center dark:bg-blue-950/40 dark:text-blue-300">
               <Icon.Book width={18} height={18} />
@@ -116,7 +116,7 @@ export function HelpModal({ open, onClose }) {
           </button>
         </div>
 
-        <div className="flex border-b border-slate-200 px-6 dark:border-slate-800">
+        <div className="flex border-b border-slate-300 px-6 dark:border-slate-800">
           {['glossary', 'faq', 'about'].map(t => (
             <button
               key={t}
@@ -134,7 +134,7 @@ export function HelpModal({ open, onClose }) {
           {tab === 'glossary' && (
             <div className="grid sm:grid-cols-2 gap-3">
               {GLOSSARY.map(g => (
-                <div key={g.title} className="p-4 rounded-lg bg-slate-50 ring-1 ring-slate-200/60 dark:bg-slate-800/40 dark:ring-slate-700/60">
+                <div key={g.title} className="p-4 rounded-lg bg-slate-50 ring-1 ring-slate-300/80 dark:bg-slate-800/40 dark:ring-slate-700/60">
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-blue-700 dark:text-blue-300">
                       <g.icon width={16} height={16} />
@@ -151,7 +151,7 @@ export function HelpModal({ open, onClose }) {
           {tab === 'faq' && (
             <div className="space-y-3">
               {FAQ.map(f => (
-                <div key={f.q} className="p-4 rounded-lg bg-slate-50 ring-1 ring-slate-200/60 dark:bg-slate-800/40 dark:ring-slate-700/60">
+                <div key={f.q} className="p-4 rounded-lg bg-slate-50 ring-1 ring-slate-300/80 dark:bg-slate-800/40 dark:ring-slate-700/60">
                   <h3 className="text-sm font-semibold text-slate-900 mb-1.5 flex items-center gap-2 dark:text-slate-50">
                     <Icon.Help width={14} height={14} className="text-blue-700 dark:text-blue-300" />
                     {f.q}
@@ -189,7 +189,7 @@ export function HelpModal({ open, onClose }) {
           )}
         </div>
 
-        <div className="px-6 py-3 border-t border-slate-200 flex items-center justify-between dark:border-slate-800">
+        <div className="px-6 py-3 border-t border-slate-300 flex items-center justify-between dark:border-slate-800">
           <p className="text-[11px] text-slate-500 dark:text-slate-400">Tip: hover over any value with a small <Icon.Info width={10} height={10} className="inline -mt-0.5" /> icon to see what it means.</p>
           <SecondaryButton onClick={onClose}>Got it</SecondaryButton>
         </div>

@@ -2,7 +2,7 @@ import { Icon } from './icons.jsx'
 
 export function Onboarding({ onLoadDemo, onCreateCustom, onExploreHotspots, hotspotsCount, eventsCount, error }) {
   return (
-    <div className="h-full flex flex-col items-center justify-center px-6 py-10 overflow-y-auto bg-slate-100 dark:bg-slate-950">
+    <div className="h-full flex flex-col items-center justify-center px-6 py-10 overflow-y-auto bg-slate-200 dark:bg-slate-950">
       <div className="max-w-3xl w-full">
         <div className="text-center mb-8">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 ring-1 ring-blue-700/20 text-blue-700 text-xs font-medium mb-4 dark:bg-blue-950/40 dark:text-blue-300">
@@ -23,7 +23,7 @@ export function Onboarding({ onLoadDemo, onCreateCustom, onExploreHotspots, hots
             { n: 2, icon: Icon.Sparkle,    title: 'See the analysis',   body: 'CityFlow estimates severity, time-to-clear, and traffic impact.' },
             { n: 3, icon: Icon.Shield,     title: 'Get the plan',       body: 'A recommended diversion map, barricade spots, and officer count.' },
           ].map(s => (
-            <div key={s.n} className="p-4 rounded-xl bg-white ring-1 ring-slate-200 shadow-sm dark:bg-slate-900 dark:ring-slate-800">
+            <div key={s.n} className="p-4 rounded-xl bg-white ring-1 ring-slate-300 shadow-sm dark:bg-slate-900 dark:ring-slate-800">
               <div className="flex items-center gap-2 mb-2">
                 <span className="w-7 h-7 rounded-full bg-blue-50 ring-1 ring-blue-700/20 text-blue-700 flex items-center justify-center text-xs font-semibold dark:bg-blue-950/40 dark:text-blue-300">{s.n}</span>
                 <s.icon width={14} height={14} className="text-slate-500 dark:text-slate-400" />
@@ -34,7 +34,7 @@ export function Onboarding({ onLoadDemo, onCreateCustom, onExploreHotspots, hots
           ))}
         </div>
 
-        <div className="rounded-xl bg-white ring-1 ring-slate-200 shadow-sm p-5 dark:bg-slate-900 dark:ring-slate-800">
+        <div className="rounded-xl bg-white ring-1 ring-slate-300 shadow-sm p-5 dark:bg-slate-900 dark:ring-slate-800">
           <h2 className="text-sm font-semibold text-slate-900 mb-1 dark:text-slate-50">Try it now</h2>
           <p className="text-xs text-slate-500 mb-4 dark:text-slate-400">No setup required. Pick where to start.</p>
           <div className="grid sm:grid-cols-3 gap-3">

@@ -15,8 +15,8 @@ export function AnalysisView({
   const [view, setView] = useState('story') // 'story' | 'plan'
 
   return (
-    <div className="h-full flex flex-col overflow-hidden bg-slate-100 dark:bg-slate-950">
-      <div className="px-5 py-3 border-b border-slate-200 bg-white/80 backdrop-blur-md flex items-center gap-2 shrink-0 dark:border-slate-800 dark:bg-slate-900/80">
+    <div className="h-full flex flex-col overflow-hidden bg-slate-200 dark:bg-slate-950">
+      <div className="px-5 py-3 border-b border-slate-300 bg-white/80 backdrop-blur-md flex items-center gap-2 shrink-0 dark:border-slate-800 dark:bg-slate-900/80">
         <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-50">Analysis for: <span className="text-blue-700 dark:text-blue-300">{event.cause}</span></h2>
         <span className="text-slate-300 mx-1 dark:text-slate-600">•</span>
         <div className="flex gap-1 ml-auto bg-slate-100 rounded-md p-0.5 dark:bg-slate-800">

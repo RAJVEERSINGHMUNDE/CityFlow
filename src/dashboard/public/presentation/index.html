@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#020617" />
+  <title>CityFlow — Recorded Presentation</title>
+  <meta name="description" content="CityFlow — Event-Driven Congestion Intelligence for Bengaluru. Recorded presentation." />
+  <style>
+    :root { color-scheme: dark; }
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body {
+      background: #020617;
+      color: #e2e8f0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── Slim top bar ─────────────────────────────────────────────── */
+    .bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 20px;
+      background: rgba(2, 6, 23, 0.7);
+      backdrop-filter: saturate(180%) blur(14px);
+      -webkit-backdrop-filter: saturate(180%) blur(14px);
+      border-bottom: 1px solid rgba(30, 41, 59, 0.8);
+      flex-shrink: 0;
+    }
+    .bar a {
+      color: #94a3b8;
+      text-decoration: none;
+      font-size: 13px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      transition: color .15s, background .15s;
+    }
+    .bar a:hover { color: #e2e8f0; background: rgba(30, 41, 59, 0.8); }
+    .bar .dot {
+      width: 10px; height: 10px; border-radius: 50%;
+      background: linear-gradient(135deg, #1d4ed8, #06b6d4);
+      box-shadow: 0 0 8px rgba(29, 78, 216, 0.5);
+    }
+    .bar .title { font-size: 13px; font-weight: 600; color: #e2e8f0; }
+    .bar .spacer { flex: 1; }
+    .bar .meta { font-size: 11px; color: #64748b; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+    /* ── Video stage ─────────────────────────────────────────────── */
+    main {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      min-height: 0;
+    }
+    .player {
+      max-width: 1280px;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      background: #000;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.5);
+    }
+    video {
+      width: 100%;
+      height: 100%;
+      display: block;
+      background: #000;
+    }
+
+    /* ── Placeholder / error states ──────────────────────────────── */
+    .placeholder {
+      width: 100%; height: 100%;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      color: #64748b; font-size: 14px; text-align: center;
+      padding: 24px; gap: 12px;
+    }
+    .placeholder .ph-title { color: #cbd5e1; font-weight: 600; font-size: 16px; }
+    .placeholder code { color: #94a3b8; font-size: 12px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; background: rgba(15, 23, 42, 0.6); padding: 6px 10px; border-radius: 6px; border: 1px solid rgba(30, 41, 59, 0.8); }
+
+    /* ── Tiny responsive nicety ──────────────────────────────────── */
+    @media (max-width: 640px) {
+      .bar { padding: 10px 14px; }
+      .bar .title { font-size: 12px; }
+      .bar .meta { display: none; }
+      main { padding: 12px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="bar">
+    <a href="/" rel="noopener">← Back to CityFlow</a>
+    <span class="dot" aria-hidden="true"></span>
+    <span class="title">CityFlow · Recorded Presentation</span>
+    <span class="spacer"></span>
+    <span class="meta" id="meta">Loading…</span>
+  </div>
+  <main>
+    <div class="player">
+      <video
+        id="player"
+        controls
+        preload="metadata"
+        playsinline
+      >
+        <source src="/videos/presentation.mp4" type="video/mp4" />
+        Sorry, your browser does not support embedded video.
+      </video>
+    </div>
+  </main>
+  <script>
+    // Update the meta text once metadata loads (or fall back to a
+    // friendly error if the file isn't on the server yet).
+    const v = document.getElementById('player');
+    const meta = document.getElementById('meta');
+    const player = document.querySelector('.player');
+
+    v.addEventListener('loadedmetadata', () => {
+      const dur = isFinite(v.duration) ? format(v.duration) : '—';
+      meta.textContent = dur + ' · 1080p';
+    });
+
+    v.addEventListener('error', () => {
+      meta.textContent = 'Unavailable';
+      player.innerHTML =
+        '<div class="placeholder">' +
+          '<div class="ph-title">Recording not yet uploaded</div>' +
+          '<div>Run this on the droplet:</div>' +
+          '<code>scp presentation.mp4 root@&lt;droplet&gt;:/root/cityflow/src/api/static/videos/presentation.mp4</code>' +
+          '<div style="font-size:12px;color:#64748b;">Then <code style="display:inline;">systemctl restart cityflow</code></div>' +
+        '</div>';
+    });
+
+    function format(sec) {
+      const m = Math.floor(sec / 60);
+      const s = Math.round(sec % 60).toString().padStart(2, '0');
+      return m + ':' + s;
+    }
+  </script>
+</body>
+</html>

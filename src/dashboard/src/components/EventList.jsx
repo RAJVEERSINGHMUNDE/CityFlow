@@ -84,7 +84,7 @@ export function ScenarioForm({ onSubmit, onCancel, error }) {
   }
 
   return (
-    <form onSubmit={submit} className="p-4 border-b border-slate-200 bg-white space-y-3 dark:border-slate-800 dark:bg-slate-900">
+    <form onSubmit={submit} className="p-4 border-b border-slate-300 bg-white space-y-3 dark:border-slate-800 dark:bg-slate-900">
       <div className="flex items-center justify-between mb-1">
         <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-50">Create a what-if event</h3>
         <button type="button" onClick={onCancel} className="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200">
@@ -175,7 +175,7 @@ export function ScenarioForm({ onSubmit, onCancel, error }) {
           <Icon.Sparkle width={14} height={14} />
           Create &amp; plan
         </button>
-        <button type="button" onClick={onCancel} className="px-3 py-2 rounded-lg bg-white hover:bg-slate-50 text-slate-700 text-sm border border-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 dark:border-slate-700">
+        <button type="button" onClick={onCancel} className="px-3 py-2 rounded-lg bg-white hover:bg-slate-50 text-slate-700 text-sm border border-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 dark:border-slate-700">
           Cancel
         </button>
       </div>
@@ -205,7 +205,7 @@ export function EventList({
           </button>
           <button
             onClick={onCreateCustom}
-            className="px-2.5 py-1.5 rounded-md bg-white text-slate-700 border border-slate-200 text-[11px] font-medium hover:bg-slate-50 inline-flex items-center justify-center gap-1.5 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700 dark:hover:bg-slate-700"
+            className="px-2.5 py-1.5 rounded-md bg-white text-slate-700 border border-slate-300 text-[11px] font-medium hover:bg-slate-50 inline-flex items-center justify-center gap-1.5 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700 dark:hover:bg-slate-700"
           >
             <Icon.Plus width={12} height={12} />
             {showForm ? 'Cancel' : 'New event'}

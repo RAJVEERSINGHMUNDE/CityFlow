@@ -152,9 +152,9 @@ export default function App() {
 
   // ── Render ────────────────────────────────────────────────────────────
   return (
-    <div className="h-screen w-full flex flex-col bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+    <div className="h-screen w-full flex flex-col bg-slate-200 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
       {/* Header */}
-      <header className="bg-white/80 border-b border-slate-200 px-5 py-3 flex items-center gap-4 shrink-0 backdrop-blur-md dark:bg-slate-900/80 dark:border-slate-800">
+      <header className="bg-white/80 border-b border-slate-300 px-5 py-3 flex items-center gap-4 shrink-0 backdrop-blur-md dark:bg-slate-900/80 dark:border-slate-800">
         <button onClick={goHome} className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
           <div className="w-8 h-8 rounded-lg bg-slate-900 flex items-center justify-center text-white shadow-sm dark:bg-blue-700">
             <Icon.Route width={18} height={18} />
@@ -195,6 +195,16 @@ export default function App() {
             <Icon.Help width={14} height={14} />
             <span className="hidden sm:inline">Help</span>
           </button>
+          <a
+            href="/presentation"
+            target="_blank"
+            rel="noopener"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-slate-600 hover:text-slate-900 hover:bg-slate-100 text-xs font-medium transition-colors dark:text-slate-300 dark:hover:text-slate-100 dark:hover:bg-slate-800"
+            title="Open the recorded presentation in a new tab"
+          >
+            <Icon.Play width={14} height={14} />
+            <span className="hidden sm:inline">Presentation</span>
+          </a>
           <ThemeToggle />
         </div>
       </header>

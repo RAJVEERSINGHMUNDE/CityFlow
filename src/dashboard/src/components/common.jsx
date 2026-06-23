@@ -10,13 +10,13 @@ export function Card({ children, className = '', tone = 'default', ...rest }) {
   // (white surfaces + colored 4px left border for severity). Dark mode keeps
   // the original subtle tinting for readability.
   const tones = {
-    default: 'bg-white border border-slate-200 shadow-sm dark:bg-slate-900/70 dark:border-slate-800 dark:shadow-none',
-    quiet:   'bg-slate-50/70 border border-slate-200/70 dark:bg-slate-900/40 dark:border-slate-800/60',
-    soft:    'bg-slate-50 border border-slate-200 dark:bg-slate-800/40 dark:border-slate-700/50',
-    accent:  'bg-white border-l-4 border-l-blue-700 border-r border-y border-slate-200 shadow-sm dark:bg-blue-950/30 dark:border-blue-900/60',
-    success: 'bg-white border-l-4 border-l-emerald-600 border-r border-y border-slate-200 shadow-sm dark:bg-emerald-950/20 dark:border-emerald-900/50',
-    warning: 'bg-white border-l-4 border-l-amber-600 border-r border-y border-slate-200 shadow-sm dark:bg-amber-950/20 dark:border-amber-900/50',
-    danger:  'bg-white border-l-4 border-l-rose-600 border-r border-y border-slate-200 shadow-sm dark:bg-rose-950/20 dark:border-rose-900/50',
+    default: 'bg-white border border-slate-300 shadow-sm dark:bg-slate-900/70 dark:border-slate-800 dark:shadow-none',
+    quiet:   'bg-slate-50/70 border border-slate-300/70 dark:bg-slate-900/40 dark:border-slate-800/60',
+    soft:    'bg-slate-50 border border-slate-300 dark:bg-slate-800/40 dark:border-slate-700/50',
+    accent:  'bg-white border-l-4 border-l-blue-700 border-r border-y border-slate-300 shadow-sm dark:bg-blue-950/30 dark:border-blue-900/60',
+    success: 'bg-white border-l-4 border-l-emerald-600 border-r border-y border-slate-300 shadow-sm dark:bg-emerald-950/20 dark:border-emerald-900/50',
+    warning: 'bg-white border-l-4 border-l-amber-600 border-r border-y border-slate-300 shadow-sm dark:bg-amber-950/20 dark:border-amber-900/50',
+    danger:  'bg-white border-l-4 border-l-rose-600 border-r border-y border-slate-300 shadow-sm dark:bg-rose-950/20 dark:border-rose-900/50',
   }
   return (
     <div className={`rounded-xl ${tones[tone] || tones.default} ${className}`} {...rest}>
@@ -200,7 +200,7 @@ export function SecondaryButton({ children, onClick, icon: I, className = '', ..
   return (
     <button
       onClick={onClick}
-      className={`inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-white hover:bg-slate-50 text-slate-700 text-sm font-medium border border-slate-200 transition-colors dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-100 dark:border-slate-700 ${className}`}
+      className={`inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-white hover:bg-slate-50 text-slate-700 text-sm font-medium border border-slate-300 transition-colors dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-100 dark:border-slate-700 ${className}`}
       {...rest}
     >
       {I && <I width={16} height={16} />}
