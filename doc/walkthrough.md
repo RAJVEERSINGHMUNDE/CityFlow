@@ -1,37 +1,29 @@
 # Walkthrough: PS2 Digital Twin Simulator
 
-I have successfully built the **Digital Twin & Diversion Simulator** for Problem Statement 2! This highly novel approach abandons standard tabular classification in favor of a microscopic graph-theory simulation of city traffic.
-
 ## What Was Accomplished
 
-1. **Data Preprocessing Pipeline (`src/simulator/data_pipeline.py`)**: 
-   - We clean the `2.csv` dataset, filtering for unplanned events (like tree falls, breakdowns) that require dynamic road closures.
-   - For demonstration, we automatically extract a high-impact "Tree Fall" event.
+1. **Data Preprocessing Pipeline (`src/simulator/data_pipeline.py`)**:
+   - Cleaned the `2.csv` dataset, filtering for unplanned events (tree falls, breakdowns) requiring dynamic road closures.
+   - Automatically extracted a high‑impact "Tree Fall" event.
 
 2. **Graph Engine (`src/simulator/graph_engine.py`)**:
-   - Instead of static maps, we use `osmnx` to dynamically download the true OpenStreetMap road network graph for a 1.5km radius around the event's exact latitude/longitude.
-   - We automatically calculate "free-flow" travel times for every street segment.
+   - Dynamically downloaded the true OpenStreetMap road network graph for a 1.5 km radius around the event.
+   - Calculated free‑flow travel times for every street segment.
 
 3. **Congestion & Diversion Simulator (`src/simulator/simulator.py`)**:
-   - **The Shockwave**: We simulate the congestion by drastically multiplying the travel times of all road edges within 50 meters (closure) and 300 meters (spillover) of the epicenter.
-   - **The Optimizer**: We run Dijkstra's shortest path algorithm on the dynamically modified graph to find the mathematically optimal detour route that avoids the gridlock.
-   - **Barricade Generation**: The AI identifies all nodes immediately upstream of the closed edges and recommends these as the optimal locations for police barricades.
+   - **The Shockwave**: Uses the BPR reverse‑BFS capacity‑decay model (instead of naive travel‑time multiplication) to simulate closure and spillover effects.
+   - **The Optimizer**: Runs Dijkstra's algorithm on the capacity‑adjusted graph to find the mathematically optimal detour route.
+   - **Barricade Generation**: Identifies upstream nodes for police barricades, ensuring continuous flow.
+
+4. **Post‑Event Learning Loop** (`/api/feedback` → refit manpower weights via `np.linalg.lstsq` + NLP retrain without catastrophic forgetting) integrates observed outcomes back into the model.
 
 ## The Output
 
-The system generates a beautiful, interactive dark-mode HTML map. 
-You can view the resulting map here:
-[diversion_plan.html](file:///D:/CODE/Python/AIML/CityFlow/src/simulator/diversion_plan.html)
+The system generates an interactive dark‑mode HTML map:
+- 🔴 **Red Line**: Original shortest‑path route.
+- ⚫ **Black Marker**: Epicenter of the unplanned event.
+- 🔵 **Cyan Line**: AI‑diverted optimal route.
+- 🟠 **Orange Markers**: Police barricade locations.
 
-**What you will see on the map:**
-- 🔴 **Red Line**: The original shortest-path route a driver *would* have taken.
-- ⚫ **Black Marker**: The epicenter of the unplanned event (e.g., Tree Fall).
-- 🔵 **Cyan Line**: The mathematically optimal AI-diverted route.
-- 🟠 **Orange Markers**: The precise intersections where police should place barricades to prevent network gridlock.
-
-## Documentation
-
-Every decision and the high-level logic for every phase of code is fully documented in:
-[architecture.md](file:///D:/CODE/Python/AIML/CityFlow/doc/architecture.md)
-
-
+Documentation:
+- [architecture.md](file:///D:/CODE/Python/AIML/CityFlow/doc/architecture.md)

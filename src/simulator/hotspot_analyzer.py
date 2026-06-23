@@ -29,6 +29,9 @@ class HotspotAnalyzer:
 
     def __init__(self, df: pd.DataFrame):
         self.df = df.copy()
+        # Initialize corridor closure attributes to ensure they exist even if precompute fails
+        self._corridor_closure_rate = {}
+        self._corridor_event_count = {}
         self._precompute()
 
     def _precompute(self):
@@ -57,8 +60,29 @@ class HotspotAnalyzer:
             .round(3)
         )
 
+        # Per-corridor closure rate and event count (for NLP capacity weighting)
+        if 'corridor' in df.columns and 'requires_road_closure' in df.columns:
+            self._corridor_closure_rate = (
+                df.groupby('corridor')['requires_road_closure']
+                  .mean().fillna(0.0).to_dict()
+            )
+        else:
+            self._corridor_closure_rate = {}
+        if 'corridor' in df.columns:
+            self._corridor_event_count = df['corridor'].value_counts().to_dict()
+        else:
+            self._corridor_event_count = {}
+
         # Hourly distribution (for chart data)
         self._hourly = df.groupby('hour').size().reindex(range(24), fill_value=0).to_dict()
+        # Hourly demand curve relative to the daily mean (used by simulator
+        # for differential time-of-day edge weighting). Normalised so the
+        # mean multiplier over 24h == 1.0.
+        _hourly_counts = np.array([self._hourly.get(h, 0) for h in range(24)], dtype=float)
+        if _hourly_counts.mean() > 0:
+            self._hourly_multiplier = (_hourly_counts / _hourly_counts.mean()).tolist()
+        else:
+            self._hourly_multiplier = [1.0] * 24
 
         # Day-of-week distribution
         _dow_order = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
@@ -146,6 +170,27 @@ class HotspotAnalyzer:
             'hourly': self._hourly,
             'dow':    self._dow,
         }
+
+    def get_hourly_multiplier(self, hour: int) -> float:
+        """Return the hourly demand multiplier for the given hour (0-23)."""
+        try:
+            return float(self._hourly_multiplier[hour])
+        except (IndexError, TypeError):
+            return 1.0
+
+    def corridor_closure_weight(self, corridor: str) -> float:
+        """Capacity-drop weight in [0.5, 1.5]; mean ~1.0.
+
+        Args:
+            corridor: Corridor name string.
+        Returns:
+            Weight factor based on closure rate. Returns 1.0 if corridor unknown.
+        """
+        rate = self._corridor_closure_rate.get(corridor, None)
+        if rate is None:
+            return 1.0
+        # Convert rate (0-1) to weight in [0.5,1.5]
+        return round(0.5 + rate, 3)
 
     def get_summary_stats(self) -> dict:
         """High-level summary statistics for the dashboard header."""

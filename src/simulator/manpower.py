@@ -14,8 +14,81 @@ Formula (data-driven, calibrated on historical resolution patterns):
 """
 
 from __future__ import annotations
+import os, json
+import numpy as np
 import networkx as nx
 
+# ── Dynamic Weights ────────────────────────────────────────────────────────
+
+# Mutable weights for manpower allocation, learned from feedback
+_WEIGHTS = {
+    "intercept": 0.5,
+    "w_severity": 0.35,
+    "w_attendance_k": 0.15,
+    "w_rush_hour": 1.2,
+    "w_closure": 2.0,
+}
+
+# Path to persisted weights file
+_WEIGHTS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "manpower_weights.json")
+
+def load_weights() -> None:
+    """Load persisted weights from JSON if available, else keep defaults."""
+    try:
+        with open(_WEIGHTS_PATH, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            if isinstance(data, dict):
+                _WEIGHTS.update(data)
+    except FileNotFoundError:
+        # No persisted weights yet - use defaults
+        pass
+    except Exception as e:
+        print(f"[Manpower] Warning: failed to load weights: {e}")
+
+def save_weights() -> None:
+    """Persist current weights to JSON file."""
+    try:
+        with open(_WEIGHTS_PATH, "w", encoding="utf-8") as f:
+            json.dump(_WEIGHTS, f, indent=2)
+    except Exception as e:
+        print(f"[Manpower] Warning: failed to save weights: {e}")
+
+def refit_manpower_weights(feedback_rows: list) -> dict | None:
+    """Refit weights using least squares on recent feedback.
+
+    feedback_rows: list of dicts with keys 'actual_officers', 'actual_barricades',
+    'severity_score', 'expected_attendance', 'requires_closure', 'time_of_day_label'.
+    """
+    # Filter rows with required fields
+    rows = [r for r in feedback_rows if all(k in r for k in ("actual_officers", "actual_barricades", "severity_score", "expected_attendance", "requires_closure", "time_of_day_label"))]
+    if len(rows) < 10:
+        return None  # insufficient data
+    # Build feature matrix X and target y (officers per barricade)
+    X = []
+    y = []
+    for r in rows:
+        attendance_k = (r.get("expected_attendance") or 0) / 1000.0
+        is_rush = 1 if r.get("time_of_day_label") == "Rush Hour" else 0
+        is_closure = 1 if r.get("requires_closure") else 0
+        X.append([1, r["severity_score"], attendance_k, is_rush, is_closure])
+        # Avoid division by zero
+        barricades = r["actual_barricades"] or 1
+        y.append(r["actual_officers"] / barricades)
+    X = np.array(X)
+    y = np.array(y)
+    # Solve least squares
+    try:
+        coeffs, _, _, _ = np.linalg.lstsq(X, y, rcond=None)
+        keys = ["intercept", "w_severity", "w_attendance_k", "w_rush_hour", "w_closure"]
+        _WEIGHTS.update(dict(zip(keys, coeffs.tolist())))
+        save_weights()
+        return dict(_WEIGHTS)
+    except Exception as e:
+        print(f"[Manpower] Warning: refit failed: {e}")
+        return None
+
+# Load weights at import time
+load_weights()
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -82,11 +155,11 @@ def allocate_manpower(
     # Uses a linear regression formula calibrated to historical manpower logs.
     # Formula: Officers = intercept + (w1 * severity) + (w2 * attendance_k) + (w3 * is_rush_hour) + (w4 * closure)
     
-    w_severity = 0.35
-    w_attendance_k = 0.15
-    w_rush_hour = 1.2
-    w_closure = 2.0
-    intercept = 0.5
+    intercept = _WEIGHTS.get('intercept', 0.5)
+    w_severity = _WEIGHTS.get('w_severity', 0.35)
+    w_attendance_k = _WEIGHTS.get('w_attendance_k', 0.15)
+    w_rush_hour = _WEIGHTS.get('w_rush_hour', 1.2)
+    w_closure = _WEIGHTS.get('w_closure', 2.0)
     
     attendance = int(event_dict.get('expected_attendance') or 0)
     attendance_k = attendance / 1000.0
@@ -143,5 +216,8 @@ def allocate_manpower(
             'requires_closure': bool(requires_closure),
             'time_of_day': time_of_day_label,
             'expected_attendance': attendance,
+            'severity_score': severity_score,
         },
     }
+
+# No additional code needed at end of file

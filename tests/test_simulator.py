@@ -69,5 +69,35 @@ class SimulatorTests(unittest.TestCase):
         self.assertGreaterEqual(validation[0]['alternate_exit_count'], 1)
 
 
+    def test_time_of_day_differential_weighting(self):
+        # Verify the per-road-class differential formula.
+        # Build a graph with a primary edge and a residential edge so we can
+        # confirm they receive different multipliers for the same hour.
+        graph = nx.MultiDiGraph()
+        for node, (y, x) in {0: (0.0, 0.0), 1: (0.0, 0.01), 2: (0.01, 0.0)}.items():
+            graph.add_node(node, y=y, x=x)
+        # Primary edge: fast, short
+        graph.add_edge(0, 1, length=100, travel_time=10, highway='primary')
+        # Residential edge: slow, short (parallel path)
+        graph.add_edge(0, 2, length=100, travel_time=10, highway='residential')
+        graph.add_edge(2, 1, length=100, travel_time=10, highway='residential')
+
+        from unittest.mock import Mock, patch as mock_patch
+        with mock_patch('src.simulator.simulator.ox.distance.nearest_nodes', return_value=0), \
+             mock_patch('src.simulator.hotspot_analyzer.get_analyzer') as mock_get:
+            mock_analyzer = Mock()
+            mock_analyzer.get_hourly_multiplier.return_value = 1.5
+            mock_get.return_value = mock_analyzer
+
+            sim = CongestionSimulator(graph, 0.0, 0.0, start_datetime='2024-03-07 09:00')
+            sim._apply_time_of_day_weights()
+
+            primary_tt = sim.G.edges[0, 1, 0]['travel_time']
+            residential_tt = sim.G.edges[0, 2, 0]['travel_time']
+            # primary: 10 * (1 + 0.5 * 1.4) = 17.0
+            # residential: 10 * (1 + 0.5 * 0.7) = 13.5
+            self.assertAlmostEqual(primary_tt, 17.0, places=1)
+            self.assertAlmostEqual(residential_tt, 13.5, places=1)
+
 if __name__ == '__main__':
     unittest.main()

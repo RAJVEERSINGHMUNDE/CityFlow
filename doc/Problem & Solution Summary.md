@@ -56,8 +56,11 @@ dataset/2.csv (8,173+ Bengaluru traffic events)
 
 ---
 
-### Current Limitations
-1. **Manpower formula is hand-tuned** — the weights (`w_severity=0.35`, `w_rush_hour=1.2`, etc.) are not learned from data
-2. **Feedback loop is write-only** — outcomes are stored but don't retrain the models automatically
-3. **No diversion route avoids *spillover* edges** — only closed edges are stripped from the diversion graph; spillover congestion is in `travel_time` but the route-finding graph still includes heavily congested links
-4. **Flow selection is purely distance-based** — candidates are ranked by `distance ≥ 0.8 km`, not by traffic volume or road importance
+### Resolved & Remaining Limitations
+**Resolved:**
+1. ✅ **Manpower formula now learns from feedback** — weights are re-fitted via `np.linalg.lstsq` after every 10 feedback entries.
+2. ✅ **Feedback loop now retrains models** — both the NLP classifier (without catastrophic forgetting) and the manpower weights update automatically.
+4. ✅ **Flow selection now volume-aware** — candidates are ranked by `distance × capacity_score`, where capacity_score averages road capacity along the route.
+
+**Remaining:**
+3. **No diversion route avoids *spillover* edges** — only closed edges are stripped from the diversion graph; spillover congestion is reflected in BPR-inflated travel times but the route-finding graph still includes heavily congested links.

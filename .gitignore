@@ -4,6 +4,8 @@ bengaluru_global.graphml
 __pycache__/
 *.py[cod]
 *.db
+src/simulator/manpower_weights.json
+src/simulator/nlp_model.pkl
 .wrangler/
 dist/
 src/simulator/cache/

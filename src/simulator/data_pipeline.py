@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import os
+import networkx as nx
 
 class DataPipeline:
     def __init__(self, data_path: str):
@@ -59,6 +60,10 @@ class DataPipeline:
             'cause': demo_event['event_cause'],
             'time': demo_event['start_datetime'],
             'event_type': demo_event.get('event_type', 'unplanned'),
+            'route_path': str(demo_event.get('route_path', '')) if pd.notna(demo_event.get('route_path')) else '',
+            'veh_type': str(demo_event.get('veh_type', '')) if pd.notna(demo_event.get('veh_type')) else '',
+            'corridor': str(demo_event.get('corridor', 'Non-corridor')) if pd.notna(demo_event.get('corridor')) else 'Non-corridor',
+            'description': str(demo_event.get('description', '')) if pd.notna(demo_event.get('description')) else '',
         }
 
     def get_top_events(self, n: int = 50) -> list:
@@ -94,6 +99,10 @@ class DataPipeline:
                 'time': str(row['start_datetime']),
                 'event_type': str(row.get('event_type', 'unplanned')),
                 'duration_hours': duration_hours,
+                'route_path': str(row.get('route_path', '')) if pd.notna(row.get('route_path')) else '',
+                'veh_type': str(row.get('veh_type', '')) if pd.notna(row.get('veh_type')) else '',
+                'corridor': str(row.get('corridor', 'Non-corridor')) if pd.notna(row.get('corridor')) else 'Non-corridor',
+                'description': str(row.get('description', '')) if pd.notna(row.get('description')) else '',
             })
         return events
 

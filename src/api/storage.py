@@ -123,9 +123,11 @@ def _scenario_from_row(row):
         'time': row['start_time'],
         'expected_attendance': row['expected_attendance'],
         'duration_hours': row['expected_duration_hours'],
+        'expected_duration_hours': row['expected_duration_hours'],
         'closure_severity': row['closure_severity'],
         'requires_closure': bool(row['requires_closure']),
         'roads_affected': row['roads_affected'],
+        'route_path': '',
         'created_at': row['created_at'],
         'source': 'operator_scenario',
     }

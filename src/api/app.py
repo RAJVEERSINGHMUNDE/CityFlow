@@ -11,11 +11,13 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../simu
 from data_pipeline    import DataPipeline
 from graph_engine     import GraphEngine, graph_ready_event, mask_edges_from_linestring
 from simulator        import CongestionSimulator
+import pandas as pd
 from severity_model   import get_predictor, model_ready_event
 from survival_model   import get_forecaster
 from nlp_impact       import get_nlp_classifier
 from hotspot_analyzer import init_analyzer, get_analyzer
 from manpower         import allocate_manpower
+from realtime_feed import init_feed, get_feed
 from storage import (
     create_feedback, create_scenario, feedback_summary, get_scenario,
     init_db, list_scenarios, create_task, update_task_success,
@@ -103,10 +105,20 @@ def _build_hotspot_background():
         print(f"[Startup] WARNING: Hotspot build failed: {e}")
         traceback.print_exc()
 
+def _init_realtime_feed_background():
+    print("[Startup] Initializing realtime feed...")
+    try:
+        init_feed(pipeline.df)
+        print("[Startup] Realtime feed ready.")
+    except Exception as e:
+        import traceback
+        print(f"[Startup] WARNING: Realtime feed init failed: {e}")
+        traceback.print_exc()
+
 threading.Thread(target=_load_graph_background,          daemon=True).start()
 threading.Thread(target=_train_severity_model_background, daemon=True).start()
 threading.Thread(target=_build_hotspot_background,        daemon=True).start()
-
+threading.Thread(target=_init_realtime_feed_background, daemon=True).start()
 
 
 # ── API Routes ────────────────────────────────────────────────────────────────
@@ -172,25 +184,39 @@ def submit_feedback():
     except (TypeError, ValueError):
         return jsonify({'error': 'Actual outcome values must be non-negative numbers.'}), 400
 
-    # ── Post-Event NLP Retraining Trigger ─────────────────────────────────────
+    # ── Post-Event Retraining Trigger (NLP + Manpower) ────────────────────────
     feedback_list = get_all_feedback()
     if len(feedback_list) > 0 and len(feedback_list) % 10 == 0:
         # Every 10 feedback entries, trigger retraining asynchronously
         def _retrain():
-            # Join with event descriptions from dataframe
             df = pipeline.df
             retrain_data = []
+            manpower_rows = []
             for f in feedback_list:
                 ev_id = f['event_id']
-                # Try to find in dataframe
+                ev = find_event(ev_id) or {}
+                # NLP: join with event descriptions from dataframe
                 matches = df[df['id'] == ev_id] if 'id' in df.columns else []
                 desc = matches.iloc[0]['description'] if len(matches) > 0 else None
                 if desc:
                     f['description'] = desc
                     retrain_data.append(f)
+                # Manpower: build feature row from feedback + event metadata
+                manpower_rows.append({
+                    'actual_officers':       f['actual_officers'],
+                    'actual_barricades':     f['actual_barricades'],
+                    'recommended_officers':  f.get('recommended_officers'),
+                    'recommended_barricades':f.get('recommended_barricades'),
+                    'severity_score':        float(ev.get('severity_score', 5.0) or 5.0),
+                    'expected_attendance':   int(ev.get('expected_attendance', 0) or 0),
+                    'time_of_day_label':     ev.get('time_of_day_label', 'Off-Peak'),
+                    'requires_closure':      bool(ev.get('requires_closure', False)),
+                })
             if retrain_data:
                 get_nlp_classifier().retrain_from_feedback(retrain_data)
-                
+            from manpower import refit_manpower_weights
+            refit_manpower_weights(manpower_rows)
+
         threading.Thread(target=_retrain, daemon=True).start()
 
     return jsonify({'outcome': outcome, 'summary': feedback_summary()}), 201
@@ -235,6 +261,9 @@ def get_severity(event_id):
         severity['nearby_historical_events'] = 0
         severity['nearby_closure_events']    = 0
         severity['nearby_cause_breakdown']   = {}
+
+    from impact_forecast import get_impact_forecaster
+    severity['impact_forecast'] = get_impact_forecaster(analyzer).forecast(event)
 
     return jsonify(severity)
 
@@ -298,14 +327,20 @@ def _run_simulation_task(task_id, event_id, lat, lon, time_str, event_dict):
 
         # ── Setup and NLP Capacity Modification ───────────────────────────────
         seed = hash(event_id) & 0x7FFF_FFFF
-        sim  = CongestionSimulator(G, lat, lon, start_datetime=time_str, seed=seed)
+        sim  = CongestionSimulator(G, lat, lon, start_datetime=time_str, seed=seed,
+                                    event_type=event_dict.get('event_type', 'unplanned'))
 
         nlp_clf = get_nlp_classifier()
         nlp_impact = nlp_clf.predict_impact(event_dict.get('description', ''))
         
-        # Base capacity factor derived from NLP disrupted prob and historical corridor stats.
-        # If disruption is high, capacity drops more. We can scale it inversely.
-        capacity_factor = 1.0 - (nlp_impact['disrupted_prob'] * 0.5) # Max 50% extra reduction
+        # Corridor-weighted capacity factor from NLP disruption prob + historical corridor closure rates
+        analyzer = get_analyzer()
+        corridor = event_dict.get('corridor', 'Non-corridor')
+        corridor_w = analyzer.corridor_closure_weight(corridor) if analyzer else 1.0
+        max_reduction = 0.5
+        capacity_factor = max(
+            0.25, 1.0 - (nlp_impact['disrupted_prob'] * corridor_w * max_reduction)
+        )
 
         # ── Pre-closed edges from linestring ──────────────────────────────────
         pre_closed_edges = mask_edges_from_linestring(G, event_dict.get('route_path'))
@@ -315,8 +350,10 @@ def _run_simulation_task(task_id, event_id, lat, lon, time_str, event_dict):
             update_task_error(task_id, "No arterial traffic flow through this event could be identified.")
             return
 
+        attendance = int(event_dict.get('expected_attendance') or 0)
+        spillover_radius = CongestionSimulator.derive_spillover_radius(attendance, base=1000)
         closed, spillover = sim.simulate_congestion_shockwave(
-            closure_radius=50, spillover_radius=300, 
+            closure_radius=50, spillover_radius=spillover_radius,
             capacity_factor=capacity_factor, pre_closed_edges=pre_closed_edges
         )
         flow_results = sim.evaluate_interventions(affected_flows, closed)
@@ -342,6 +379,17 @@ def _run_simulation_task(task_id, event_id, lat, lon, time_str, event_dict):
             cox_t80           = survival['t80_clearance_min'],
         )
 
+        from impact_forecast import get_impact_forecaster
+        impact_forecast = get_impact_forecaster(get_analyzer()).forecast(
+            event_dict,
+            sim_result={
+                'closed_edges': len(closed),
+                'spillover_edges': len(spillover),
+                'spillover_radius_m': spillover_radius,
+            },
+            flow_results=flow_results,
+        )
+
         map_html = sim.visualize_flows(flow_results, valid_barricades)
 
         valid_flows = [flow for flow in flow_results if flow['valid_intervention']]
@@ -365,10 +413,14 @@ def _run_simulation_task(task_id, event_id, lat, lon, time_str, event_dict):
                 "average_delay_reduction_pct": average_reduction,
                 "time_of_day_label":     sim.time_of_day_label,
                 "time_multiplier":       sim.time_multiplier,
+                "severity_score":        severity.get('severity_score', 5.0),
+                "spillover_radius_m":    spillover_radius,
             },
+            "impact_forecast": impact_forecast,
             "flow_analysis": public_flows,
             "barricade_validation": barricade_validation,
             "manpower_plan": manpower_plan,
+            "diversion_plan": sim.synthesize_diversion_plan(flow_results, barricade_validation, manpower_plan, closed),
         }
         
         update_task_success(task_id, result_dict, map_html)
@@ -404,6 +456,21 @@ def get_task_status(task_id):
     if not task:
         return jsonify({"error": "Task not found"}), 404
     return jsonify(task)
+
+@app.route('/api/realtime/incidents', methods=['GET'])
+def get_realtime_incidents():
+    as_of = request.args.get('as_of')
+    if not as_of:
+        return jsonify({'error': 'as_of query param required'}), 400
+    try:
+        ts = pd.to_datetime(as_of)
+    except Exception:
+        return jsonify({'error': 'invalid as_of datetime'}), 400
+    feed = get_feed()
+    if not feed:
+        return jsonify({'error': 'Realtime feed not initialized'}), 500
+    incidents = feed.get_active_incidents(ts.to_pydatetime())
+    return jsonify({'incidents': incidents})
 
 
 if __name__ == '__main__':

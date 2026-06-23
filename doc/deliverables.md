@@ -19,7 +19,7 @@ Deliverables for the CityFlow Digital Twin submission: here is the checklist of 
 ## 2. Technical Architecture & Documentation
 - **Description**: A comprehensive technical whitepaper outlining the mathematical foundations (Reverse-BFS, Dijkstra), algorithms (Continuous Flow Barricading), and system architecture (Asynchronous Polling).
 - **Format**: PDF Document or Markdown File.
-- **Status**: **READY** (`doc/technical_whitepaper.md` has been exported).
+- **Status**: **READY — synced to BPR architecture** (`doc/technical_whitepaper.md`).
 
 ## 3. Pitch Deck / Presentation
 - **Description**: A slide deck explaining the problem, the CityFlow solution, the impact, and the business/city-level value. Keep it concise and visually appealing.
