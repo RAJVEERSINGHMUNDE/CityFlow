@@ -24,7 +24,7 @@ function highlightNLP(text, flagged) {
   const parts = text.split(re)
   return parts.map((part, i) =>
     flagged.some(f => f.toLowerCase() === part.toLowerCase())
-      ? <mark key={i} className="bg-red-500/20 text-red-200 px-0.5 rounded">{part}</mark>
+      ? <mark key={i} className="bg-rose-100 text-rose-800 px-0.5 rounded dark:bg-rose-900/40 dark:text-rose-200">{part}</mark>
       : <span key={i}>{part}</span>
   )
 }
@@ -42,33 +42,33 @@ export function SituationCard({ event, severity, severityLoading }) {
   return (
     <Card className="p-5" tone="default">
       <div className="flex items-start gap-3 mb-3">
-        <div className="w-10 h-10 rounded-lg bg-blue-500/15 border border-blue-500/30 flex items-center justify-center text-blue-300 shrink-0">
+        <div className="w-10 h-10 rounded-lg bg-blue-50 ring-1 ring-blue-600/20 flex items-center justify-center text-blue-700 shrink-0 dark:bg-blue-950/40 dark:text-blue-300">
           <Icon.Flag width={20} height={20} />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1 flex-wrap">
-            <h2 className="text-lg font-semibold text-slate-100">{event.cause}</h2>
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-50">{event.cause}</h2>
             <EventTypeBadge type={event.event_type} />
             {event.requires_closure && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10.5px] font-medium border bg-red-500/10 text-red-300 border-red-500/30">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10.5px] font-medium ring-1 bg-rose-50 text-rose-700 ring-rose-600/20 dark:bg-rose-950/40 dark:text-rose-300">
                 <Icon.Flag width={11} height={11} />
                 Road closure
               </span>
             )}
           </div>
-          <div className="text-xs text-slate-400">
+          <div className="text-xs text-slate-500 dark:text-slate-400">
             <Icon.Calendar width={11} height={11} className="inline -mt-0.5 mr-1" />
             {fmtDateTime(event.time)}
             {event.expected_attendance > 0 && (
               <>
-                <span className="mx-2 text-slate-700">•</span>
+                <span className="mx-2 text-slate-300 dark:text-slate-600">•</span>
                 <Icon.People width={11} height={11} className="inline -mt-0.5 mr-1" />
                 ~{Number(event.expected_attendance).toLocaleString()} expected
               </>
             )}
             {event.roads_affected && (
               <>
-                <span className="mx-2 text-slate-700">•</span>
+                <span className="mx-2 text-slate-300 dark:text-slate-600">•</span>
                 <Icon.Pin width={11} height={11} className="inline -mt-0.5 mr-1" />
                 {event.roads_affected}
               </>
@@ -78,47 +78,47 @@ export function SituationCard({ event, severity, severityLoading }) {
         {level && <SeverityBadge level={level} large />}
       </div>
 
-      <div className="rounded-lg bg-slate-950/40 border border-slate-800 p-3">
+      <div className="rounded-lg bg-slate-50 ring-1 ring-slate-200/60 p-3 dark:bg-slate-800/40 dark:ring-slate-700/60">
         {severityLoading ? (
-          <div className="flex items-center gap-2 text-sm text-slate-400">
+          <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
             <Spinner size="sm" />
             <span>Assessing impact…</span>
           </div>
         ) : level ? (
           <>
-            <p className="text-sm text-slate-200 leading-relaxed">
-              <strong className="text-slate-100">{headline}</strong>{' '}
+            <p className="text-sm text-slate-700 leading-relaxed dark:text-slate-200">
+              <strong className="text-slate-900 dark:text-slate-50">{headline}</strong>{' '}
               {severity.resolution_label && (
-                <span className="text-slate-400">
-                  Expected to take about <strong className="text-slate-200">{severity.resolution_label}</strong> to clear.
+                <span className="text-slate-500 dark:text-slate-400">
+                  Expected to take about <strong className="text-slate-700 dark:text-slate-200">{severity.resolution_label}</strong> to clear.
                 </span>
               )}
             </p>
             {isLowConfidence && (
-              <p className="text-[11px] text-amber-300/80 mt-2 flex items-start gap-1.5">
+              <p className="text-[11px] text-amber-700 mt-2 flex items-start gap-1.5 dark:text-amber-300">
                 <Icon.Info width={12} height={12} className="shrink-0 mt-0.5" />
                 <span>Model confidence is moderate ({Math.round(confidence * 100)}%) - using a conservative estimate based on similar past events.</span>
               </p>
             )}
           </>
         ) : (
-          <p className="text-sm text-slate-500">No assessment available yet.</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">No assessment available yet.</p>
         )}
       </div>
 
       {event.description && (
         <div className="mt-3">
           <div className="flex items-center gap-1.5 mb-1.5">
-            <span className="text-[11px] text-slate-400 font-medium uppercase tracking-wider">Radio / log report</span>
+            <span className="text-[11px] text-slate-500 font-medium uppercase tracking-wider dark:text-slate-400">Radio / log report</span>
             <Hint text="CityFlow reads the description in any language (including Kannada) and flags words that signal serious disruption - like 'heavy traffic', 'ನಿಧಾನ', 'jam'." />
           </div>
-          <p className="text-sm text-slate-200 p-3 rounded-lg bg-slate-950/50 border border-slate-800 leading-relaxed">
+          <p className="text-sm text-slate-800 p-3 rounded-lg bg-white ring-1 ring-slate-200 leading-relaxed dark:text-slate-200 dark:bg-slate-900 dark:ring-slate-700">
             {highlightNLP(event.description, severity?.nlp_flagged_words)}
           </p>
           {severity?.nlp_disruption_prob !== undefined && (
             <div className="mt-2 flex items-center gap-2 text-[11px]">
-              <span className="text-slate-500">AI read of this report:</span>
-              <span className={`font-semibold ${severity.nlp_disruption_prob > 0.5 ? 'text-red-300' : 'text-emerald-300'}`}>
+              <span className="text-slate-500 dark:text-slate-400">AI read of this report:</span>
+              <span className={`font-semibold ${severity.nlp_disruption_prob > 0.5 ? 'text-rose-700 dark:text-rose-300' : 'text-emerald-700 dark:text-emerald-300'}`}>
                 {Math.round(severity.nlp_disruption_prob * 100)}% likely to disrupt traffic
               </span>
             </div>

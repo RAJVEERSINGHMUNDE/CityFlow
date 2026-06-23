@@ -94,35 +94,35 @@ export function HelpModal({ open, onClose }) {
   if (!open) return null
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm"
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-3xl max-h-[85vh] bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+        className="w-full max-w-3xl max-h-[85vh] bg-white ring-1 ring-slate-200 rounded-2xl shadow-2xl flex flex-col overflow-hidden dark:bg-slate-900 dark:ring-slate-700"
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-blue-500/15 border border-blue-500/30 flex items-center justify-center text-blue-300">
+            <div className="w-9 h-9 rounded-lg bg-blue-50 ring-1 ring-blue-600/20 text-blue-700 flex items-center justify-center dark:bg-blue-950/40 dark:text-blue-300">
               <Icon.Book width={18} height={18} />
             </div>
             <div>
-              <h2 className="text-base font-semibold text-slate-100">Help & Glossary</h2>
-              <p className="text-xs text-slate-500">Plain-language explanations of every term used here</p>
+              <h2 className="text-base font-semibold text-slate-900 dark:text-slate-50">Help & Glossary</h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Plain-language explanations of every term used here</p>
             </div>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-100 p-1.5 rounded-md hover:bg-slate-800">
+          <button onClick={onClose} className="text-slate-400 hover:text-slate-900 p-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 dark:hover:text-slate-100">
             <Icon.Close width={18} height={18} />
           </button>
         </div>
 
-        <div className="flex border-b border-slate-800 px-6">
+        <div className="flex border-b border-slate-200 px-6 dark:border-slate-800">
           {['glossary', 'faq', 'about'].map(t => (
             <button
               key={t}
               onClick={() => setTab(t)}
               className={`px-3 py-2.5 text-sm font-medium border-b-2 transition-colors capitalize ${
-                tab === t ? 'border-blue-400 text-blue-300' : 'border-transparent text-slate-400 hover:text-slate-200'
+                tab === t ? 'border-blue-600 text-blue-700 dark:border-blue-400 dark:text-blue-300' : 'border-transparent text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100'
               }`}
             >
               {t === 'faq' ? 'FAQ' : t}
@@ -134,15 +134,15 @@ export function HelpModal({ open, onClose }) {
           {tab === 'glossary' && (
             <div className="grid sm:grid-cols-2 gap-3">
               {GLOSSARY.map(g => (
-                <div key={g.title} className="p-4 rounded-lg bg-slate-800/40 border border-slate-700/50">
+                <div key={g.title} className="p-4 rounded-lg bg-slate-50 ring-1 ring-slate-200/60 dark:bg-slate-800/40 dark:ring-slate-700/60">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-blue-300">
+                    <span className="text-blue-700 dark:text-blue-300">
                       <g.icon width={16} height={16} />
                     </span>
-                    <h3 className="text-sm font-semibold text-slate-100">{g.title}</h3>
+                    <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-50">{g.title}</h3>
                   </div>
-                  <p className="text-xs text-slate-300 mb-1.5 font-medium">{g.short}</p>
-                  <p className="text-xs text-slate-400 leading-relaxed">{g.body}</p>
+                  <p className="text-xs text-slate-700 mb-1.5 font-medium dark:text-slate-200">{g.short}</p>
+                  <p className="text-xs text-slate-600 leading-relaxed dark:text-slate-400">{g.body}</p>
                 </div>
               ))}
             </div>
@@ -151,34 +151,34 @@ export function HelpModal({ open, onClose }) {
           {tab === 'faq' && (
             <div className="space-y-3">
               {FAQ.map(f => (
-                <div key={f.q} className="p-4 rounded-lg bg-slate-800/40 border border-slate-700/50">
-                  <h3 className="text-sm font-semibold text-slate-100 mb-1.5 flex items-center gap-2">
-                    <Icon.Help width={14} height={14} className="text-blue-300" />
+                <div key={f.q} className="p-4 rounded-lg bg-slate-50 ring-1 ring-slate-200/60 dark:bg-slate-800/40 dark:ring-slate-700/60">
+                  <h3 className="text-sm font-semibold text-slate-900 mb-1.5 flex items-center gap-2 dark:text-slate-50">
+                    <Icon.Help width={14} height={14} className="text-blue-700 dark:text-blue-300" />
                     {f.q}
                   </h3>
-                  <p className="text-xs text-slate-400 leading-relaxed">{f.a}</p>
+                  <p className="text-xs text-slate-600 leading-relaxed dark:text-slate-400">{f.a}</p>
                 </div>
               ))}
             </div>
           )}
 
           {tab === 'about' && (
-            <div className="prose prose-invert max-w-none text-slate-300 text-sm leading-relaxed space-y-4">
+            <div className="prose prose-invert max-w-none text-slate-700 text-sm leading-relaxed space-y-4 dark:text-slate-300">
               <div>
-                <h3 className="text-base font-semibold text-slate-100 mb-2">What is CityFlow?</h3>
+                <h3 className="text-base font-semibold text-slate-900 mb-2 dark:text-slate-50">What is CityFlow?</h3>
                 <p>
                   CityFlow is a decision-support tool for traffic operations teams. It answers three questions
                   before, during, and after traffic events:
                 </p>
-                <ol className="list-decimal list-inside space-y-1 mt-2 text-slate-400 text-sm">
-                  <li><strong className="text-slate-200">What is going to happen?</strong> &mdash; Predicts how bad the disruption will be.</li>
-                  <li><strong className="text-slate-200">What should we do about it?</strong> &mdash; Recommends diversion routes, barricade placements, and police deployment.</li>
-                  <li><strong className="text-slate-200">Did it work?</strong> &mdash; Learns from every past event to improve future predictions.</li>
+                <ol className="list-decimal list-inside space-y-1 mt-2 text-slate-600 text-sm dark:text-slate-400">
+                  <li><strong className="text-slate-900 dark:text-slate-100">What is going to happen?</strong> &mdash; Predicts how bad the disruption will be.</li>
+                  <li><strong className="text-slate-900 dark:text-slate-100">What should we do about it?</strong> &mdash; Recommends diversion routes, barricade placements, and police deployment.</li>
+                  <li><strong className="text-slate-900 dark:text-slate-100">Did it work?</strong> &mdash; Learns from every past event to improve future predictions.</li>
                 </ol>
               </div>
               <div>
-                <h3 className="text-base font-semibold text-slate-100 mb-2">How to use this dashboard</h3>
-                <ol className="list-decimal list-inside space-y-1 text-slate-400 text-sm">
+                <h3 className="text-base font-semibold text-slate-900 mb-2 dark:text-slate-50">How to use this dashboard</h3>
+                <ol className="list-decimal list-inside space-y-1 text-slate-600 text-sm dark:text-slate-400">
                   <li>Pick an event from the list on the left, or click <em>Load Demo</em> to try a sample.</li>
                   <li>CityFlow analyses it and shows a side-by-side map: what happens by itself vs. what happens with the recommended plan.</li>
                   <li>Read the right panel for severity, time estimates, recommended officers and barricades.</li>
@@ -189,8 +189,8 @@ export function HelpModal({ open, onClose }) {
           )}
         </div>
 
-        <div className="px-6 py-3 border-t border-slate-800 flex items-center justify-between">
-          <p className="text-[11px] text-slate-500">Tip: hover over any value with a small <Icon.Info width={10} height={10} className="inline -mt-0.5" /> icon to see what it means.</p>
+        <div className="px-6 py-3 border-t border-slate-200 flex items-center justify-between dark:border-slate-800">
+          <p className="text-[11px] text-slate-500 dark:text-slate-400">Tip: hover over any value with a small <Icon.Info width={10} height={10} className="inline -mt-0.5" /> icon to see what it means.</p>
           <SecondaryButton onClick={onClose}>Got it</SecondaryButton>
         </div>
       </div>

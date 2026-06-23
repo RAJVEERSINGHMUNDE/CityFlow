@@ -1,0 +1,77 @@
+CityFlow is a Graph-AI and Operations-Research digital twin that helps
+traffic-operations teams in Bengaluru prepare for, respond to, and learn
+from every kind of event-driven congestion — from a 35,000-attendee
+cricket match at M. Chinnaswamy Stadium, to a multi-axle breakdown
+stranding traffic on the Outer Ring Road, to a tree-fall blocking a
+residential junction, to a sudden water-logging during monsoon. It is
+built specifically for Problem Statement 2 of the hackathon — "Event-
+Driven Congestion (Planned & Unplanned)" — and directly tackles the
+three pain points the brief calls out: event impact is not quantified
+in advance, resource deployment is experience-driven, and there is no
+post-event learning system.
+
+CityFlow replaces all three with a single, end-to-end data-driven
+pipeline that takes an event record (lat/lon, cause, time, expected
+attendance, corridor, vehicle type, free-text description) and returns
+an actionable operations plan in under fifteen seconds. That plan
+includes a predicted severity level (Green / Amber / Red), a predicted
+clearance time with worst-case band, a pre-event traffic impact
+forecast (person-delay minutes, queue length, area congestion index,
+estimated vehicle count), up to three arterial diversion routes that
+have been verified to avoid the closed edges and to actually save time,
+a list of validated police barricade locations that do not trap
+vehicles into U-turns, an officer count and shift duration grounded in
+a Cox Proportional Hazards survival model, and a "What history says"
+panel that pulls in the count and cause breakdown of similar incidents
+within two kilometres.
+
+The system is built on the real Bengaluru road network — 155,373 nodes
+and 393,731 edges, downloaded once from OpenStreetMap and cached
+locally for sub-second subgraph extraction. A reverse-Breadth-First-
+Search shockwave propagates capacity decay upstream from the event
+epicenter using the Bureau of Public Roads formula; once a road's
+volume-to-capacity ratio crosses 0.85, a strict three-times travel-
+time penalty is applied so Dijkstra's algorithm is forced to find a
+genuinely free-flowing detour. Per-road-class hourly multipliers
+(motorways amplify the rush-hour signal, residential and service roads
+dampen it) make the recommended route actually differ between peak and
+off-peak, rather than collapsing to the same shortest path at every
+time of day. A Gradient Boosting regressor plus a Random Forest
+classifier — trained on 8,173 historical Bengaluru incidents — predict
+the severity level and the resolution time. A LaBSE multilingual
+sentence encoder reads the operator's Kannada or English radio report
+and produces a disruption probability that scales the edge capacity
+drop on a corridor-conditioned basis, so a "heavy traffic" report on
+Tumkur Road hits the network harder than the same words on a quiet
+service lane. Barricade placement uses a continuous-flow algorithm
+that walks upstream from each closed edge to the first node with a
+safe out-degree, so vehicles are always redirected to an alternate
+exit instead of being trapped at a dead end.
+
+After the event, the operator logs the actual resolution time, the
+number of officers deployed, the number of barricades used, the
+observed severity, and whether the diversion was effective. Every ten
+such feedback entries, a background thread re-fits the five linear
+manpower weights via numpy least squares and re-trains the NLP
+logistic head on the union of original and feedback embeddings, so
+the system never forgets what it already knew. Forecast error,
+diversion success rate, and total recorded outcomes are exposed
+through a single /api/feedback/summary endpoint, giving traffic
+operations a real institutional memory instead of one-shot gut calls.
+
+The user-facing experience is a dark-themed React/Vite dashboard that
+walks the operator through five steps: what is happening, how bad is
+it, what does the city look like during this (a side-by-side map
+showing the do-nothing baseline and the CityFlow plan), what does
+CityFlow recommend, and after the event, log what really happened.
+Three pre-loaded demo events — the cricket match, a heavy breakdown,
+and a Kannada radio report — let a reviewer see the full range of
+capability in under a minute. A built-in glossary, FAQ, and about
+panel explain every metric in plain language. The backend is a Flask
+API on port 8000 with a SQLite operational memory; the frontend is
+served by Vite on port 3000 and proxies /api and /maps to the
+backend, with a Cloudflare Pages Functions reverse proxy already
+wired up for production deployment. The full project is open source,
+runs end-to-end on a laptop, and is ready to be fronted by any live
+traffic feed (HERE, TomTom, or a control-room CCTV pipeline) in place
+of the current historical-replay adapter.

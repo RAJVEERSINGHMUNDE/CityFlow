@@ -57,7 +57,7 @@ export function FeedbackPanel({ event, severity, manpower, onSubmitted, summary 
         title="After the event: log what happened"
         hint="This helps CityFlow learn and improve future recommendations"
       />
-      <p className="text-xs text-slate-400 leading-relaxed mb-4">
+      <p className="text-xs text-slate-500 leading-relaxed mb-4 dark:text-slate-400">
         Once the event is over and you know the actual numbers, fill this in. The system compares your answer to its prediction and
         adjusts future plans.
       </p>
@@ -65,7 +65,7 @@ export function FeedbackPanel({ event, severity, manpower, onSubmitted, summary 
       <form onSubmit={submit} className="space-y-3">
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <label className="block text-[11px] text-slate-400 mb-1">How long did it actually take? (min)</label>
+            <label className="block text-[11px] text-slate-600 mb-1 dark:text-slate-400">How long did it actually take? (min)</label>
             <input
               required type="number" min="1" value={form.resolution}
               onChange={e => setForm({ ...form, resolution: e.target.value })}
@@ -74,7 +74,7 @@ export function FeedbackPanel({ event, severity, manpower, onSubmitted, summary 
             />
           </div>
           <div>
-            <label className="block text-[11px] text-slate-400 mb-1">How serious was it really?</label>
+            <label className="block text-[11px] text-slate-600 mb-1 dark:text-slate-400">How serious was it really?</label>
             <select
               value={form.severity}
               onChange={e => setForm({ ...form, severity: e.target.value })}
@@ -86,7 +86,7 @@ export function FeedbackPanel({ event, severity, manpower, onSubmitted, summary 
             </select>
           </div>
           <div>
-            <label className="block text-[11px] text-slate-400 mb-1">Officers actually used</label>
+            <label className="block text-[11px] text-slate-600 mb-1 dark:text-slate-400">Officers actually used</label>
             <input
               required type="number" min="0" value={form.officers}
               onChange={e => setForm({ ...form, officers: e.target.value })}
@@ -95,7 +95,7 @@ export function FeedbackPanel({ event, severity, manpower, onSubmitted, summary 
             />
           </div>
           <div>
-            <label className="block text-[11px] text-slate-400 mb-1">Barricades actually used</label>
+            <label className="block text-[11px] text-slate-600 mb-1 dark:text-slate-400">Barricades actually used</label>
             <input
               required type="number" min="0" value={form.barricades}
               onChange={e => setForm({ ...form, barricades: e.target.value })}
@@ -106,16 +106,20 @@ export function FeedbackPanel({ event, severity, manpower, onSubmitted, summary 
         </div>
 
         <div>
-          <label className="block text-[11px] text-slate-400 mb-1">Did the diversion plan work?</label>
+          <label className="block text-[11px] text-slate-600 mb-1 dark:text-slate-400">Did the diversion plan work?</label>
           <div className="grid grid-cols-2 gap-2">
-            <label className={`flex items-center gap-2 p-2.5 rounded-lg border cursor-pointer transition-colors ${
-              form.effective === 'yes' ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-200' : 'bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700'
+            <label className={`flex items-center gap-2 p-2.5 rounded-lg ring-1 cursor-pointer transition-colors ${
+              form.effective === 'yes'
+                ? 'bg-emerald-50 border-emerald-600/20 ring-emerald-600/30 text-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200'
+                : 'bg-white border-slate-200 ring-slate-200 text-slate-700 hover:bg-slate-50 dark:bg-slate-900 dark:border-slate-700 dark:ring-slate-700 dark:text-slate-200 dark:hover:bg-slate-800'
             }`}>
               <input type="radio" name="effective" value="yes" checked={form.effective === 'yes'} onChange={e => setForm({ ...form, effective: e.target.value })} />
               <span className="text-sm">Yes, traffic flowed well</span>
             </label>
-            <label className={`flex items-center gap-2 p-2.5 rounded-lg border cursor-pointer transition-colors ${
-              form.effective === 'no' ? 'bg-red-500/10 border-red-500/40 text-red-200' : 'bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700'
+            <label className={`flex items-center gap-2 p-2.5 rounded-lg ring-1 cursor-pointer transition-colors ${
+              form.effective === 'no'
+                ? 'bg-rose-50 border-rose-600/20 ring-rose-600/30 text-rose-800 dark:bg-rose-950/30 dark:text-rose-200'
+                : 'bg-white border-slate-200 ring-slate-200 text-slate-700 hover:bg-slate-50 dark:bg-slate-900 dark:border-slate-700 dark:ring-slate-700 dark:text-slate-200 dark:hover:bg-slate-800'
             }`}>
               <input type="radio" name="effective" value="no" checked={form.effective === 'no'} onChange={e => setForm({ ...form, effective: e.target.value })} />
               <span className="text-sm">No, it caused more jams</span>
@@ -124,7 +128,7 @@ export function FeedbackPanel({ event, severity, manpower, onSubmitted, summary 
         </div>
 
         <div>
-          <label className="block text-[11px] text-slate-400 mb-1">Anything else worth remembering? <span className="text-slate-600">(optional)</span></label>
+          <label className="block text-[11px] text-slate-600 mb-1 dark:text-slate-400">Anything else worth remembering? <span className="text-slate-400 dark:text-slate-500">(optional)</span></label>
           <input
             value={form.notes}
             onChange={e => setForm({ ...form, notes: e.target.value })}
@@ -137,13 +141,13 @@ export function FeedbackPanel({ event, severity, manpower, onSubmitted, summary 
           <button
             type="submit"
             disabled={submitting}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white text-sm font-medium"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-medium shadow-sm"
           >
             <Icon.Check width={14} height={14} />
             {submitting ? 'Saving…' : 'Save outcome'}
           </button>
           {summary?.total_outcomes > 0 && (
-            <span className="text-[11px] text-slate-500">
+            <span className="text-[11px] text-slate-500 dark:text-slate-400">
               {summary.total_outcomes} outcome{summary.total_outcomes === 1 ? '' : 's'} on file
               {summary.diversion_success_rate != null && (
                 <> • {summary.diversion_success_rate}% diversion success</>
@@ -153,7 +157,7 @@ export function FeedbackPanel({ event, severity, manpower, onSubmitted, summary 
         </div>
 
         {status && (
-          <p className="text-xs text-emerald-300 bg-emerald-950/30 border border-emerald-900/50 rounded-md px-3 py-2">
+          <p className="text-xs text-emerald-800 bg-emerald-50 ring-1 ring-emerald-600/20 rounded-md px-3 py-2 dark:text-emerald-200 dark:bg-emerald-950/30 dark:ring-emerald-900/40">
             {status}
           </p>
         )}

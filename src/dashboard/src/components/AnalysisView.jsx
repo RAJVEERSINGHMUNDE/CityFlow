@@ -15,11 +15,11 @@ export function AnalysisView({
   const [view, setView] = useState('story') // 'story' | 'plan'
 
   return (
-    <div className="h-full flex flex-col overflow-hidden">
-      <div className="px-5 py-3 border-b border-slate-800 bg-slate-900 flex items-center gap-2 shrink-0">
-        <h2 className="text-sm font-semibold text-slate-100">Analysis for: <span className="text-blue-300">{event.cause}</span></h2>
-        <span className="text-slate-700 mx-1">•</span>
-        <div className="flex gap-1 ml-auto bg-slate-800/60 rounded-md p-0.5">
+    <div className="h-full flex flex-col overflow-hidden bg-slate-50 dark:bg-slate-950">
+      <div className="px-5 py-3 border-b border-slate-200 bg-white/80 backdrop-blur-md flex items-center gap-2 shrink-0 dark:border-slate-800 dark:bg-slate-900/80">
+        <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-50">Analysis for: <span className="text-blue-700 dark:text-blue-300">{event.cause}</span></h2>
+        <span className="text-slate-300 mx-1 dark:text-slate-600">•</span>
+        <div className="flex gap-1 ml-auto bg-slate-100 rounded-md p-0.5 dark:bg-slate-800">
           {[
             { id: 'story', label: 'Story view', icon: Icon.Book },
             { id: 'plan',  label: 'Plan view',  icon: Icon.Shield },
@@ -28,7 +28,7 @@ export function AnalysisView({
               key={t.id}
               onClick={() => setView(t.id)}
               className={`flex items-center gap-1.5 px-2.5 py-1 text-[11px] rounded transition-colors ${
-                view === t.id ? 'bg-slate-700 text-slate-100' : 'text-slate-400 hover:text-slate-200'
+                view === t.id ? 'bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-slate-50' : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100'
               }`}
             >
               <t.icon width={12} height={12} />
@@ -94,15 +94,15 @@ export function AnalysisView({
 function StepCard({ n, icon: I, title, body, children }) {
   return (
     <div className="relative pl-12">
-      <div className="absolute left-0 top-0 w-9 h-9 rounded-full bg-blue-500/15 border-2 border-blue-500/40 text-blue-300 flex items-center justify-center text-sm font-semibold">
+      <div className="absolute left-0 top-0 w-9 h-9 rounded-full bg-blue-50 ring-2 ring-blue-600/30 text-blue-700 flex items-center justify-center text-sm font-semibold dark:bg-blue-950/40 dark:text-blue-300">
         {n}
       </div>
       <div className="mb-3">
         <div className="flex items-center gap-2 mb-1">
-          <I width={16} height={16} className="text-slate-400" />
-          <h3 className="text-base font-semibold text-slate-100">{title}</h3>
+          <I width={16} height={16} className="text-slate-500 dark:text-slate-400" />
+          <h3 className="text-base font-semibold text-slate-900 dark:text-slate-50">{title}</h3>
         </div>
-        <p className="text-sm text-slate-400 leading-relaxed">{body}</p>
+        <p className="text-sm text-slate-500 leading-relaxed dark:text-slate-400">{body}</p>
       </div>
       {children}
     </div>
